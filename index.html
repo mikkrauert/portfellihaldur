@@ -310,14 +310,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--display);min-heigh
 
     <div class="setup-section">
       <div class="setup-label">Financial Modeling Prep (FMP) <span class="optional-badge">vabatahtlik</span></div>
-      <input type="password" class="setup-input" id="fmpKeyInput" placeholder="FMP API võti — P/E, EPS, analüütikute soovitused" autocomplete="off">
+      <input type="password" class="setup-input" id="fmpKeyInput" placeholder="FMP API võti — P/E, RSI, hinnasiht" autocomplete="off">
       <p class="setup-hint">Tasuta: <code>financialmodelingprep.com</code> → Sign Up → Dashboard</p>
     </div>
 
     <div class="setup-section">
+      <div class="setup-label">Finnhub <span class="optional-badge">vabatahtlik</span></div>
+      <input type="password" class="setup-input" id="finnhubKeyInput" placeholder="Finnhub API võti — analüütikute konsensus" autocomplete="off">
+      <p class="setup-hint">Tasuta: <code>finnhub.io</code> → Sign Up → API Keys</p>
+    </div>
+
+    <div class="setup-section">
       <div class="setup-label">Alpha Vantage <span class="optional-badge">vabatahtlik</span></div>
-      <input type="password" class="setup-input" id="avKeyInput" placeholder="Alpha Vantage API võti — RSI, MACD, libisevad keskmised" autocomplete="off">
-      <p class="setup-hint">Tasuta: <code>alphavantage.co</code> → Get Free API Key</p>
+      <input type="password" class="setup-input" id="avKeyInput" placeholder="Alpha Vantage API võti — SMA libisev keskmine" autocomplete="off">
+      <p class="setup-hint">Tasuta: <code>alphavantage.co</code> → Get Free API Key · 25 päringut/päevas</p>
     </div>
 
     <div class="setup-section">
@@ -357,7 +363,8 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
     <div class="topbar-actions">
       <div class="api-status" id="apiStatus"></div>
       <button class="btn btn-outline btn-sm" onclick="refreshPrices()" id="refreshBtn">↻ Hinnad</button>
-      <button class="btn btn-outline btn-sm" onclick="fetchFundamentals()" id="fmpBtn">↻ Fundamentaalid</button>
+      <button class="btn btn-outline btn-sm" onclick="fetchFundamentals()" id="fmpBtn">↻ FMP+Finnhub</button>
+      <button class="btn btn-outline btn-sm" onclick="fetchTechnicalsSMA()" id="avBtn">↻ SMA</button>
       <button class="btn btn-gold btn-sm" onclick="runFullAnalysis()" id="analyzeBtn">AI analüüs →</button>
       <button class="btn btn-ghost btn-sm" onclick="showTab('settings')" title="Seaded">⚙</button>
     </div>
@@ -564,8 +571,12 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
               <input type="password" class="form-input" id="s-fmp" placeholder="financialmodelingprep.com võti">
             </div>
             <div class="form-group">
+              <label class="form-label">Finnhub võti <span class="optional-badge">vabatahtlik</span></label>
+              <input type="password" class="form-input" id="s-finnhub" placeholder="finnhub.io võti — analüütikute konsensus">
+            </div>
+            <div class="form-group">
               <label class="form-label">Alpha Vantage võti <span class="optional-badge">vabatahtlik</span></label>
-              <input type="password" class="form-input" id="s-av" placeholder="alphavantage.co võti">
+              <input type="password" class="form-input" id="s-av" placeholder="alphavantage.co võti — SMA libisev keskmine">
             </div>
             <button class="btn btn-gold btn-sm" onclick="saveKeys()">Salvesta võtmed</button>
           </div>
@@ -614,7 +625,7 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-let CLAUDE_KEY='', FMP_KEY='', AV_KEY='';
+let CLAUDE_KEY='', FMP_KEY='', AV_KEY='', FINNHUB_KEY='';
 const MODEL='claude-sonnet-4-6';
 const CLAUDE_URL='https://api.anthropic.com/v1/messages';
 
@@ -633,9 +644,10 @@ window.addEventListener('load',()=>{
   const ck=sessionStorage.getItem('pm_claude');
   const fk=sessionStorage.getItem('pm_fmp');
   const ak=sessionStorage.getItem('pm_av');
+  const fhk=sessionStorage.getItem('pm_finnhub');
   const pf=localStorage.getItem('pm_portfolio');
   if(ck&&pf){
-    CLAUDE_KEY=ck; FMP_KEY=fk||''; AV_KEY=ak||'';
+    CLAUDE_KEY=ck; FMP_KEY=fk||''; AV_KEY=ak||''; FINNHUB_KEY=fhk||'';
     portfolio=JSON.parse(pf);
     launchApp();
   }
@@ -647,9 +659,11 @@ function initApp(){
   CLAUDE_KEY=ck;
   FMP_KEY=document.getElementById('fmpKeyInput').value.trim();
   AV_KEY=document.getElementById('avKeyInput').value.trim();
+  FINNHUB_KEY=document.getElementById('finnhubKeyInput').value.trim();
   sessionStorage.setItem('pm_claude',ck);
   if(FMP_KEY) sessionStorage.setItem('pm_fmp',FMP_KEY);
   if(AV_KEY) sessionStorage.setItem('pm_av',AV_KEY);
+  if(FINNHUB_KEY) sessionStorage.setItem('pm_finnhub',FINNHUB_KEY);
   const raw=document.getElementById('portfolioInput').value.trim();
   if(raw){
     portfolio=parsePortfolio(raw);
@@ -792,6 +806,7 @@ function updateApiStatus(){
   document.getElementById('apiStatus').innerHTML=`
     <span class="api-dot ${CLAUDE_KEY?'ok':'off'}" title="Claude ${CLAUDE_KEY?'aktiivne':'puudub'}"></span>
     ${FMP_KEY?'<span class="api-dot ok" title="FMP aktiivne"></span>':'<span class="api-dot off" title="FMP puudub"></span>'}
+    ${FINNHUB_KEY?'<span class="api-dot ok" title="Finnhub aktiivne"></span>':'<span class="api-dot off" title="Finnhub puudub"></span>'}
     ${AV_KEY?'<span class="api-dot ok" title="AV aktiivne"></span>':'<span class="api-dot off" title="AV puudub"></span>'}`;
 }
 
@@ -1073,24 +1088,57 @@ async function refreshPrices(){
 }
 
 // ═══════════════════════════════════════════
-// FMP — Fundamentaalid + analüütikud
+// FMP — Fundamentaalid + RSI + analüütikud
 // ═══════════════════════════════════════════
+
+// Yahoo kaardist tuletame ka FMP tickeri (Euroopa börsid vajavad sufiksit)
+const fmpTickerMap = {
+  'MC':'MC.PA','OR':'OR.PA','TTE':'TTE.PA','SAN':'SAN.PA',
+  'BNP':'BNP.PA','AXA':'AXA.PA','AI':'AI.PA','SGO':'SGO.PA',
+  'DG':'DG.PA','RI':'RI.PA','RMS':'RMS.PA',
+  'NESTE':'NESTE.HE','FORTUM':'FORTUM.HE','NOKIA':'NOKIA.HE',
+  'SAMPO':'SAMPO.HE','UPM':'UPM.HE',
+  'ASML':'ASML.AS','HEIA':'HEIA.AS',
+  'SAP':'SAP.DE','SIE':'SIE.DE','ALV':'ALV.DE',
+  'BMW':'BMW.DE','MBG':'MBG.DE','BAYN':'BAYN.DE',
+  'ZPRG':'ZPRG.DE','SEBASSEL':'SEBASSEL.DE',
+};
+
+function fmpTicker(s){
+  return fmpTickerMap[s.ticker] || s.ticker;
+}
+
 async function fetchFundamentals(){
   if(!FMP_KEY){alert('Lisa FMP API võti Seadetes');return;}
   const btn=document.getElementById('fmpBtn');
-  btn.innerHTML='<span class="loader"></span>';
+  btn.innerHTML='<span class="loader"></span> Laen...';
   btn.disabled=true;
-  const usaTickers=portfolio.filter(s=>s.cat==='USA'||s.cat==='ETF');
-  let ok=0;
-  for(const s of usaTickers){
+
+  // Kõik peale Balti ja Krüpto — FMP katab USA + Euroopa
+  const targets = portfolio.filter(s=>s.cat!=='Balti'&&s.cat!=='Krüpto');
+  let ok=0, rsiOk=0;
+
+  for(const s of targets){
+    const ft = fmpTicker(s);
     try{
-      const q=await fetch(`https://financialmodelingprep.com/api/v3/quote/${s.ticker}?apikey=${FMP_KEY}`);
+      // 1. Quote — P/E, EPS
+      const q=await fetch(`https://financialmodelingprep.com/api/v3/quote/${ft}?apikey=${FMP_KEY}`);
       if(q.ok){
         const d=await q.json();
         if(d[0]){s.pe=d[0].pe||null;s.eps=d[0].eps||null;}
       }
-      await new Promise(r=>setTimeout(r,300));
-      const a=await fetch(`https://financialmodelingprep.com/api/v3/analyst-stock-recommendations/${s.ticker}?limit=1&apikey=${FMP_KEY}`);
+      await new Promise(r=>setTimeout(r,250));
+
+      // 2. RSI (14 päeva) — FMP technical indicator
+      const ri=await fetch(`https://financialmodelingprep.com/api/v3/technical_indicator/daily/${ft}?period=14&type=rsi&apikey=${FMP_KEY}`);
+      if(ri.ok){
+        const rd=await ri.json();
+        if(rd[0]?.rsi!=null){s.rsi=parseFloat(rd[0].rsi);rsiOk++;}
+      }
+      await new Promise(r=>setTimeout(r,250));
+
+      // 3. Analüütikute soovitused + hinnasiht
+      const a=await fetch(`https://financialmodelingprep.com/api/v3/analyst-stock-recommendations/${ft}?limit=1&apikey=${FMP_KEY}`);
       if(a.ok){
         const d=await a.json();
         if(d[0]){
@@ -1105,50 +1153,95 @@ async function fetchFundamentals(){
             else if(sells/total>0.4) s.analystRating='Sell';
             else s.analystRating='Hold';
           }
-          const pt=await fetch(`https://financialmodelingprep.com/api/v3/price-target-consensus/${s.ticker}?apikey=${FMP_KEY}`);
-          if(pt.ok){const pd=await pt.json();if(pd[0]?.targetConsensus)s.analystTarget=pd[0].targetConsensus;}
         }
       }
+      await new Promise(r=>setTimeout(r,250));
+
+      const pt=await fetch(`https://financialmodelingprep.com/api/v3/price-target-consensus/${ft}?apikey=${FMP_KEY}`);
+      if(pt.ok){
+        const pd=await pt.json();
+        if(pd[0]?.targetConsensus) s.analystTarget=pd[0].targetConsensus;
+      }
+      await new Promise(r=>setTimeout(r,250));
+
       ok++;
-      await new Promise(r=>setTimeout(r,400));
-    }catch(e){}
+    }catch(e){console.warn(`FMP viga ${ft}:`,e);}
   }
+
+  // Finnhub — analüütikute konsensus kõigile (USA + Euroopa)
+  // Finnhub kasutab oma tickeri formaati: MC (mitte MC.PA)
+  let fhOk=0;
+  if(FINNHUB_KEY){
+    for(const s of targets){
+      try{
+        const r=await fetch(`https://finnhub.io/api/v1/stock/recommendation?symbol=${s.ticker}&token=${FINNHUB_KEY}`);
+        if(r.ok){
+          const d=await r.json();
+          if(d&&d.length>0){
+            const latest=d[0];
+            const buys=(latest.buy||0)+(latest.strongBuy||0);
+            const sells=(latest.sell||0)+(latest.strongSell||0);
+            const holds=latest.hold||0;
+            const total=buys+sells+holds;
+            if(total>0){
+              if(buys/total>0.6) s.analystRating='Strong Buy';
+              else if(buys/total>0.4) s.analystRating='Buy';
+              else if(sells/total>0.4) s.analystRating='Sell';
+              else s.analystRating='Hold';
+              fhOk++;
+            }
+          }
+        }
+        await new Promise(r=>setTimeout(r,300));
+      }catch(e){console.warn(`Finnhub viga ${s.ticker}:`,e);}
+    }
+  }
+
   localStorage.setItem('pm_portfolio',JSON.stringify(portfolio));
   renderTable();
-  btn.innerHTML=`↻ Fundamentaalid (${ok})`;
+  const avNote = AV_KEY ? ' · SMA eraldi nupust' : '';
+  btn.innerHTML=`↻ FMP+Finnhub (FMP:${ok}, FH:${fhOk}${avNote})`;
   btn.disabled=false;
-  setTimeout(()=>btn.innerHTML='↻ Fundamentaalid',5000);
-
-  // AV tehnilised näitajad — laetakse koos fundamentaalidega, säästab limiiti
-  if(AV_KEY){
-    const usaTickers=portfolio.filter(s=>s.cat==='USA').slice(0,3).map(s=>s.ticker);
-    for(const t of usaTickers){ await fetchTechnicals(t); }
-    renderTable();
-  }
+  setTimeout(()=>btn.innerHTML='↻ FMP+Finnhub',7000);
 }
 
 // ═══════════════════════════════════════════
-// ALPHA VANTAGE — RSI + MA
+// ALPHA VANTAGE — ainult SMA (10 aktsiat)
 // ═══════════════════════════════════════════
-async function fetchTechnicals(ticker){
+async function fetchTechnicalsSMA(){
+  if(!AV_KEY){alert('Lisa Alpha Vantage võti Seadetes');return;}
+  const btn=document.getElementById('avBtn');
+  btn.innerHTML='<span class="loader"></span> SMA...';
+  btn.disabled=true;
+
+  // USA + Euroopa aktsiad kuni 10 (AV limiit 25/päevas, SMA=1 päring/aktsia)
+  const avTargets=portfolio.filter(s=>s.cat==='USA'||s.cat==='Euroopa').slice(0,10);
+  let ok=0;
+  for(const s of avTargets){
+    await fetchSMA(s.ticker);
+    ok++;
+  }
+
+  localStorage.setItem('pm_portfolio',JSON.stringify(portfolio));
+  renderTable();
+  btn.innerHTML=`↻ SMA (${ok} aktsiat)`;
+  btn.disabled=false;
+  setTimeout(()=>btn.innerHTML='↻ SMA',5000);
+}
+
+// ═══════════════════════════════════════════
+// ALPHA VANTAGE — ainult SMA (50 päeva)
+// ═══════════════════════════════════════════
+async function fetchSMA(ticker){
   if(!AV_KEY) return;
   try{
-    const r=await fetch(`https://www.alphavantage.co/query?function=RSI&symbol=${ticker}&interval=daily&time_period=14&series_type=close&apikey=${AV_KEY}`);
-    if(!r.ok) return;
-    const d=await r.json();
-    const vals=Object.values(d['Technical Analysis: RSI']||{});
-    if(vals[0]) {
-      const s=portfolio.find(x=>x.ticker===ticker);
-      if(s) s.rsi=parseFloat(vals[0]['RSI']);
-    }
-    await new Promise(r=>setTimeout(r,1200)); 
+    await new Promise(r=>setTimeout(r,1200));
     const m=await fetch(`https://www.alphavantage.co/query?function=SMA&symbol=${ticker}&interval=daily&time_period=50&series_type=close&apikey=${AV_KEY}`);
-    if(m.ok){
-      const md=await m.json();
-      const mv=Object.values(md['Technical Analysis: SMA']||{});
-      const s=portfolio.find(x=>x.ticker===ticker);
-      if(s&&mv[0]) s.ma50=parseFloat(mv[0]['SMA']);
-    }
+    if(!m.ok) return;
+    const md=await m.json();
+    const mv=Object.values(md['Technical Analysis: SMA']||{});
+    const s=portfolio.find(x=>x.ticker===ticker);
+    if(s&&mv[0]) s.ma50=parseFloat(mv[0]['SMA']);
   }catch(e){}
 }
 
@@ -1495,9 +1588,11 @@ function filterNews(type,el){
 function saveKeys(){
   const ck=document.getElementById('s-claude').value.trim();
   const fk=document.getElementById('s-fmp').value.trim();
+  const fhk=document.getElementById('s-finnhub').value.trim();
   const ak=document.getElementById('s-av').value.trim();
   if(ck){CLAUDE_KEY=ck;sessionStorage.setItem('pm_claude',ck);}
   if(fk){FMP_KEY=fk;sessionStorage.setItem('pm_fmp',fk);}
+  if(fhk){FINNHUB_KEY=fhk;sessionStorage.setItem('pm_finnhub',fhk);}
   if(ak){AV_KEY=ak;sessionStorage.setItem('pm_av',ak);}
   updateApiStatus();
   alert('Võtmed salvestatud!');
