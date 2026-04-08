@@ -1028,12 +1028,34 @@ async function refreshPrices(){
     console.warn("FX kursi laadimine ebaõnnestus, kasutan vaikimisi kurssi", eurUsdRate);
   }
 
-  const cryptoMap={BTC:'BTC-USD',ETH:'ETH-USD',ADA:'ADA-USD',SOL:'SOL-USD'};
+  // Yahoo Finance tickeri kaart — Euroopa aktsiad vajavad börsi sufiksit
+  const yahooMap={
+    // Krüpto
+    'BTC':'BTC-USD','ETH':'ETH-USD','ADA':'ADA-USD','SOL':'SOL-USD',
+    'MATIC':'MATIC-USD','DOT':'DOT-USD','XRP':'XRP-USD','BNB':'BNB-USD',
+    // Euroopa (Pariis .PA, Helsingi .HE, Amsterdam .AS, Frankfurt .DE)
+    'MC':'MC.PA','OR':'OR.PA','TTE':'TTE.PA','SAN':'SAN.PA',
+    'BNP':'BNP.PA','AXA':'AXA.PA','AI':'AI.PA','SGO':'SGO.PA',
+    'DG':'DG.PA','RI':'RI.PA','RMS':'RMS.PA',
+    'NESTE':'NESTE.HE','FORTUM':'FORTUM.HE','NOKIA':'NOKIA.HE',
+    'SAMPO':'SAMPO.HE','UPM':'UPM.HE',
+    'ASML':'ASML.AS','HEIA':'HEIA.AS','PHIA':'PHI.AS',
+    'SAP':'SAP.DE','SIE':'SIE.DE','ALV':'ALV.DE',
+    'BMW':'BMW.DE','MBG':'MBG.DE','BAYN':'BAYN.DE',
+    // GNRC on USA (NYSE)
+    'GNRC':'GNRC',
+    // ETF-id Xetra börsil
+    'ZPRG':'ZPRG.DE','SEBASSEL':'SEBASSEL.DE',
+  };
+
   let updated=0;
   for(const s of portfolio){
-    if(s.cat==='Balti') continue; 
+    if(s.cat==='Balti') continue;
     try{
-      const sym=cryptoMap[s.ticker]||(s.cat==='ETF'?`${s.ticker}.DE`:s.ticker);
+      // Kasuta kaardist või lisa ETF puhul .DE sufiks
+      let sym = yahooMap[s.ticker];
+      if(!sym) sym = s.cat==='ETF' ? `${s.ticker}.DE` : s.ticker;
+
       const url=`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d&t=${Date.now()}`;
       const r=await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
       if(!r.ok) continue;
@@ -1230,24 +1252,24 @@ async function runFullAnalysis(){
   try{
     const ctx=portfolioCtx();
     const raw=await callAI(
-      `Sa oled kogenud portfellianalüütik. Tagasta AINULT kehtiv JSON:
+      `Sa oled portfellianalüütik. Tagasta AINULT JSON:
 {
-  "overview":"4-5 lauset eesti keeles portfelli üldolukorrast",
-  "top_risk":"peamine risk eesti keeles",
-  "top_opportunity":"parim võimalus eesti keeles",
+  "overview":"3-4 lauset portfelli üldolukorrast eesti keeles",
+  "top_risk":"peamine risk eesti keeles, 1 lause",
+  "top_opportunity":"parim võimalus eesti keeles, 1 lause",
   "holdings":[{
     "ticker":"X",
     "recommendation":"OSTA|HOIA|MÜÜ",
     "confidence":"kõrge|keskmine|madal",
-    "reasoning":"2-3 lauset eesti keeles",
-    "news_summary":"katalüsaatorid ja riskid eesti keeles",
+    "reasoning":"1-2 lauset eesti keeles",
+    "news_summary":"1 lause katalüsaatoritest eesti keeles",
     "risk_level":"madal|keskmine|kõrge",
     "price_target_pct":15,
-    "signals":[{"l":"RSI<30","t":"bull"},{"l":"P/E kõrge","t":"bear"}]
+    "signals":[{"l":"RSI<30","t":"bull"}]
   }]
 }`,
-      `${ctx}\n\nAnna ausad soovitused. Ole konkreetne, ära anna kõigile "HOIA".`,
-      4096, true 
+      `${ctx}\n\nAnna iga positsioonile lühike, konkreetne soovitus. Ära anna kõigile HOIA.`,
+      6000, true
     );
     console.log("AI JSON tagastus (Analüüs):", raw);
     const result = parseJSON(raw);
