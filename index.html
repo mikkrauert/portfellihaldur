@@ -963,6 +963,7 @@ async function gemini(system, user, maxTokens=1000){
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature: 0.2
+      responseMimeType: "application/json"
     }
   };
 
@@ -1034,6 +1035,7 @@ async function runFullAnalysis(){
       `${ctx}\n\nAnna ausad soovitused. Ole konkreetne, ära anna kõigile "HOIA".`,
       4096
     );
+    console.log("Gemini tagastas:", raw);
     const result=JSON.parse(raw.replace(/```json|```/g,'').trim());
     analysisData=result;
     result.holdings?.forEach(h=>{
