@@ -266,12 +266,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--display);min-heigh
   <div class="setup-inner">
     <div class="setup-logo">Portfellihaldur v2.0</div>
     <h1 class="setup-title">Tark<br><span>portfellihaldus.</span></h1>
-    <p class="setup-sub">Reaalajahinnad, tehniline analüüs, analüütikute soovitused ja Gemini AI — kõik ühes tööriistas. Sinu andmed jäävad ainult sinu brauserisse.</p>
+    <p class="setup-sub">Reaalajahinnad, tehniline analüüs, analüütikute soovitused ja Meta Llama AI — kõik ühes tööriistas. Sinu andmed jäävad ainult sinu brauserisse.</p>
 
     <div class="setup-section">
-      <div class="setup-label">Gemini API võti <span style="color:var(--red);margin-left:4px">*</span></div>
-      <input type="password" class="setup-input" id="apiKeyInput" placeholder="AIzaSy..." autocomplete="off">
-      <p class="setup-hint">Leia: <code>aistudio.google.com/app/apikey</code> → Create API key</p>
+      <div class="setup-label">OpenRouter API võti <span style="color:var(--red);margin-left:4px">*</span></div>
+      <input type="password" class="setup-input" id="apiKeyInput" placeholder="sk-or-v1-..." autocomplete="off">
+      <p class="setup-hint">Loo tasuta võti: <code>openrouter.ai/keys</code></p>
     </div>
 
     <div class="setup-section">
@@ -385,7 +385,7 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
       <div id="analysisEmpty" class="empty">
         <div class="empty-icon">📡</div>
         <div class="empty-title">Analüüs pole käivitatud</div>
-        <div class="empty-sub">Gemini analüüsib positsioone, hindab riske ja annab soovitused</div>
+        <div class="empty-sub">Llama AI analüüsib positsioone, hindab riske ja annab soovitused</div>
         <button class="btn btn-gold" onclick="runFullAnalysis()">Käivita AI analüüs →</button>
       </div>
       <div id="analysisContent" class="hidden">
@@ -513,8 +513,8 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
           <div class="acard-title">API võtmed</div>
           <div style="display:flex;flex-direction:column;gap:10px">
             <div class="form-group">
-              <label class="form-label">Gemini API võti</label>
-              <input type="password" class="form-input" id="s-gemini" placeholder="AIzaSy...">
+              <label class="form-label">OpenRouter API võti</label>
+              <input type="password" class="form-input" id="s-or" placeholder="sk-or-v1-...">
             </div>
             <div class="form-group">
               <label class="form-label">FMP API võti <span class="optional-badge">vabatahtlik</span></label>
@@ -571,40 +571,39 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-let GEMINI_KEY='', FMP_KEY='', AV_KEY='';
-const MODEL='gemini-2.5-flash';
+let OPENROUTER_KEY='', FMP_KEY='', AV_KEY='';
+const MODEL='meta-llama/llama-3-8b-instruct:free'; // Tasuta avatud lähtekoodiga mudel OpenRouterist
 
-let eurUsdRate = 1.08; // Vaikimisi kurss juhuks kui fetch ebaõnnestub, uuendatakse refreshPrices käigus
+let eurUsdRate = 1.08; 
 
 let portfolio=[];
 let sortCol='plPct', sortDir=-1, activeFilter='all';
 let analysisData=null, ideasData=[], newsData=[];
 
-// Abifunktsioon väärtuste eurodeks konverteerimiseks arvutuste jaoks
 const toEur = (val, cur) => cur === 'USD' ? val / eurUsdRate : val;
 
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
 window.addEventListener('load',()=>{
-  const gk=sessionStorage.getItem('pm_gemini');
+  const ork=sessionStorage.getItem('pm_openrouter');
   const fk=sessionStorage.getItem('pm_fmp');
   const ak=sessionStorage.getItem('pm_av');
   const pf=localStorage.getItem('pm_portfolio');
-  if(gk&&pf){
-    GEMINI_KEY=gk; FMP_KEY=fk||''; AV_KEY=ak||'';
+  if(ork&&pf){
+    OPENROUTER_KEY=ork; FMP_KEY=fk||''; AV_KEY=ak||'';
     portfolio=JSON.parse(pf);
     launchApp();
   }
 });
 
 function initApp(){
-  const gk=document.getElementById('apiKeyInput').value.trim();
-  if(!gk||!gk.startsWith('AIza')){alert('Sisesta kehtiv Gemini API võti');return;}
-  GEMINI_KEY=gk;
+  const ork=document.getElementById('apiKeyInput').value.trim();
+  if(!ork||!ork.startsWith('sk-or-')){alert('Sisesta kehtiv OpenRouter API võti');return;}
+  OPENROUTER_KEY=ork;
   FMP_KEY=document.getElementById('fmpKeyInput').value.trim();
   AV_KEY=document.getElementById('avKeyInput').value.trim();
-  sessionStorage.setItem('pm_gemini',gk);
+  sessionStorage.setItem('pm_openrouter',ork);
   if(FMP_KEY) sessionStorage.setItem('pm_fmp',FMP_KEY);
   if(AV_KEY) sessionStorage.setItem('pm_av',AV_KEY);
   const raw=document.getElementById('portfolioInput').value.trim();
@@ -621,7 +620,7 @@ function launchApp(){
   document.getElementById('appScreen').classList.add('visible');
   updateApiStatus();
   renderAll();
-  refreshPrices(); // Tõmbame kohe live hinnad ja FX kursi käivitamisel
+  refreshPrices(); 
 }
 
 // ═══════════════════════════════════════════
@@ -646,10 +645,7 @@ function parsePortfolio(text){
     if(parts.length<3) continue;
     const first=parts[0].toUpperCase().replace(/[^A-Z0-9]/g,'');
     
-    // Lubame kuni 20 tähemärki pikkuseid sümboleid (SEBASSEL jaoks)
     if(!first||first.length>20||first.length<1) continue;
-    
-    // Välistame LHV tabeli päised. Välistame AS ja OÜ vaid juhul, kui see ongi terve sõna
     if(['SÜMBOL','SYMBOL','TICKER','KOKKU','TOTAL','ISIN'].some(h=>first.includes(h))) continue;
     if(first === 'AS' || first === 'OÜ') continue; 
     
@@ -683,7 +679,6 @@ function renderAll(){
 }
 
 function updateTopbar(){
-  // Koguväärtus eurodes
   const total=portfolio.reduce((s,x)=>s+toEur(x.qty*x.curPrice, x.currency),0);
   const cost=portfolio.reduce((s,x)=>s+toEur(x.qty*x.buyPrice, x.currency),0);
   const pl=total-cost;
@@ -696,7 +691,7 @@ function updateTopbar(){
 
 function updateApiStatus(){
   document.getElementById('apiStatus').innerHTML=`
-    <span class="api-dot ok" title="Gemini aktiivne"></span>
+    <span class="api-dot ok" title="AI aktiivne"></span>
     ${FMP_KEY?'<span class="api-dot ok" title="FMP aktiivne"></span>':'<span class="api-dot off" title="FMP puudub"></span>'}
     ${AV_KEY?'<span class="api-dot ok" title="AV aktiivne"></span>':'<span class="api-dot off" title="AV puudub"></span>'}`;
 }
@@ -751,7 +746,7 @@ function renderTable(){
     const peCell=s.pe!=null?`<span class="${s.pe>30?'neg':s.pe<15?'pos':''}">${s.pe.toFixed(1)}</span>`:'<span class="tag">—</span>';
     const rsiCell=s.rsi!=null?`<span class="${s.rsi<30?'pos':s.rsi>70?'neg':''}">${s.rsi.toFixed(0)}</span>`:'<span class="tag">—</span>';
     const analCell=s.analystRating?`<span class="tag" style="color:${s.analystRating.includes('Buy')?'var(--green)':s.analystRating.includes('Sell')?'var(--red)':'var(--muted)'}">${s.analystRating}</span>`:'<span class="tag">—</span>';
-    const sym = s.currency === 'USD' ? '$' : '€'; // Õige sümbol reaväärtustele
+    const sym = s.currency === 'USD' ? '$' : '€'; 
     
     return `<tr>
       <td><span class="ticker-sym">${s.ticker}</span><span class="cat-pill">${s.cat}</span><div class="ticker-name">${s.name!==s.ticker?s.name:''}</div></td>
@@ -868,7 +863,6 @@ async function refreshPrices(){
   btn.innerHTML='<span class="loader"></span>';
   btn.disabled=true;
   
-  // Tõmbame kõigepealt reaalajas EUR/USD kursi
   try {
     const fxurl = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=1d`;
     const fxres = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(fxurl)}`);
@@ -882,7 +876,7 @@ async function refreshPrices(){
   const cryptoMap={BTC:'BTC-USD',ETH:'ETH-USD',ADA:'ADA-USD',SOL:'SOL-USD'};
   let updated=0;
   for(const s of portfolio){
-    if(s.cat==='Balti') continue; // Balti pole Yahoo Finance'is
+    if(s.cat==='Balti') continue; 
     try{
       const sym=cryptoMap[s.ticker]||(s.cat==='ETF'?`${s.ticker}.DE`:s.ticker);
       const url=`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
@@ -975,26 +969,43 @@ async function fetchTechnicals(ticker){
 }
 
 // ═══════════════════════════════════════════
-// GEMINI API
+// OPENROUTER / LLAMA 3 API
 // ═══════════════════════════════════════════
-async function gemini(system, user, maxTokens=1000, isJson=false){
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
+async function callAI(system, user, maxTokens=1000, isJson=false){
+  const url = `https://openrouter.ai/api/v1/chat/completions`;
+  
+  if (isJson) {
+      system += "\n\nOLED MASIN, MIS VÄLJASTAB AINULT VALIIDSET JSON FORMAATI. ÄRA ÜTLE TERE, ÄRA KASUTA MARKDOWNI, AINULT JSON!";
+  }
+
   const payload = {
-    system_instruction: { parts: [{ text: system }] },
-    contents: [{ role: "user", parts: [{ text: user }] }],
-    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.2 }
+    model: MODEL,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user }
+    ],
+    max_tokens: maxTokens,
+    temperature: 0.2
   };
 
-  if(isJson) payload.generationConfig.responseMimeType = "application/json";
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENROUTER_KEY}`,
+      'HTTP-Referer': window.location.href, 
+      'X-Title': 'Portfellihaldur'
+    },
+    body: JSON.stringify(payload)
+  });
 
-  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   if (!r.ok) {
     const e = await r.json().catch(()=>({}));
     throw new Error(e?.error?.message || `HTTP ${r.status}`);
   }
   
   const d = await r.json();
-  return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return d.choices?.[0]?.message?.content || '';
 }
 
 function portfolioCtx(){
@@ -1026,10 +1037,10 @@ async function runFullAnalysis(){
   showTab('analysis');
   document.getElementById('analysisEmpty').classList.add('hidden');
   document.getElementById('analysisContent').classList.remove('hidden');
-  document.getElementById('analysisContent').innerHTML=`<div class="empty"><span class="loader" style="width:22px;height:22px;border-width:3px"></span><div class="empty-title" style="margin-top:16px">Analüüsin ${portfolio.length} positsiooni...</div><div class="empty-sub">Gemini hindab fundamentaale, riske ja annab soovitused</div></div>`;
+  document.getElementById('analysisContent').innerHTML=`<div class="empty"><span class="loader" style="width:22px;height:22px;border-width:3px"></span><div class="empty-title" style="margin-top:16px">Analüüsin ${portfolio.length} positsiooni...</div><div class="empty-sub">Llama 3 hindab fundamentaale, riske ja annab soovitused</div></div>`;
   try{
     const ctx=portfolioCtx();
-    const raw=await gemini(
+    const raw=await callAI(
       `Sa oled kogenud portfellianalüütik. Tagasta AINULT kehtiv JSON:
 {
   "overview":"4-5 lauset eesti keeles portfelli üldolukorrast",
@@ -1049,7 +1060,13 @@ async function runFullAnalysis(){
       `${ctx}\n\nAnna ausad soovitused. Ole konkreetne, ära anna kõigile "HOIA".`,
       4096, true 
     );
-    const result=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    console.log("AI JSON tagastus (Analüüs):", raw);
+    
+    // Puhastame markdown tagid kui Llama neid kogemata paneb
+    let cleanRaw = raw.replace(/```json/g,'').replace(/```/g,'').trim();
+    if(cleanRaw.indexOf('{') > 0) cleanRaw = cleanRaw.substring(cleanRaw.indexOf('{'));
+    
+    const result=JSON.parse(cleanRaw);
     analysisData=result;
     result.holdings?.forEach(h=>{
       const s=portfolio.find(x=>x.ticker===h.ticker);
@@ -1120,7 +1137,7 @@ async function generateIdeas(){
   document.getElementById('ideasContent').classList.remove('hidden');
   document.getElementById('ideasGrid').innerHTML=`<div class="empty"><span class="loader" style="width:20px;height:20px;border-width:3px"></span></div>`;
   try{
-    const raw=await gemini(
+    const raw=await callAI(
       `Tagasta AINULT JSON:
 {"ideas":[{"ticker":"X","name":"Nimi","reason":"2-3 lauset eesti keeles","risk":"madal|keskmine|kõrge","sector":"sektor","upside_pct":25,"thesis":"üks lause tees","signals":["signaal1"]}]}
 Genereeri täpselt 6 ostuideed.`,
@@ -1128,7 +1145,11 @@ Genereeri täpselt 6 ostuideed.`,
 Paku 6 uut hajutavat ostukandidaati — ei dubleeri olemasolevaid, on hetkel atraktiivselt hinnastatud, omavad selget investeerimisteemat. Kaasa vähemalt 1-2 Euroopa aktsiat.`,
       2000, true
     );
-    ideasData=JSON.parse(raw.replace(/```json|```/g,'').trim()).ideas||[];
+    
+    let cleanRaw = raw.replace(/```json/g,'').replace(/```/g,'').trim();
+    if(cleanRaw.indexOf('{') > 0) cleanRaw = cleanRaw.substring(cleanRaw.indexOf('{'));
+    
+    ideasData=JSON.parse(cleanRaw).ideas||[];
     document.getElementById('ideasGrid').innerHTML=ideasData.map(idea=>`
       <div class="idea-card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -1159,14 +1180,18 @@ async function generateNews(){
   document.getElementById('newsContent').classList.remove('hidden');
   document.getElementById('newsList').innerHTML=`<div class="empty"><span class="loader" style="width:20px;height:20px;border-width:3px"></span></div>`;
   try{
-    const raw=await gemini(
+    const raw=await callAI(
       `Tagasta AINULT JSON:
 {"news":[{"headline":"Uudise pealkiri eesti keeles","summary":"2-3 lauset mõjust portfellile eesti keeles","affected_tickers":["TICK"],"sentiment":"pos|neg|neu","scope":"portfolio|macro","impact":"kõrge|keskmine|madal"}]}
 Genereeri 10-12 uudist.`,
       `${portfolioCtx()}\n\nGenereeri olulised uudised ja katalüsaatorid: olemasolevad positsioonid, makromajandus (intressimäärad, tariiifid, dollar), AI trend, energiahinnad. Ole konkreetne ja actionable.`,
       2500, true
     );
-    newsData=JSON.parse(raw.replace(/```json|```/g,'').trim()).news||[];
+    
+    let cleanRaw = raw.replace(/```json/g,'').replace(/```/g,'').trim();
+    if(cleanRaw.indexOf('{') > 0) cleanRaw = cleanRaw.substring(cleanRaw.indexOf('{'));
+    
+    newsData=JSON.parse(cleanRaw).news||[];
     renderNewsList();
   }catch(e){
     document.getElementById('newsList').innerHTML=`<div class="empty"><div class="empty-sub">Viga: ${e.message}</div></div>`;
@@ -1205,7 +1230,7 @@ async function sendChat(){
   msgs.innerHTML+=`<div class="msg msg-ai" id="${lid}"><span class="loader"></span></div>`;
   msgs.scrollTop=msgs.scrollHeight;
   try{
-    const reply=await gemini(
+    const reply=await callAI(
       `Sa oled kogenud portfellianalüütik. ${portfolioCtx()}\n${analysisData?'Viimane analüüs olemas.':''}\nVasta eesti keeles. Ole konkreetne, aus, anna numbrilisi näiteid. Kasuta **bold** tähtsamate punktide jaoks.`,
       msg, 1500, false 
     );
@@ -1261,10 +1286,10 @@ function filterNews(type,el){
 // SETTINGS
 // ═══════════════════════════════════════════
 function saveKeys(){
-  const gk=document.getElementById('s-gemini').value.trim();
+  const ork=document.getElementById('s-or').value.trim();
   const fk=document.getElementById('s-fmp').value.trim();
   const ak=document.getElementById('s-av').value.trim();
-  if(gk){GEMINI_KEY=gk;sessionStorage.setItem('pm_gemini',gk);}
+  if(ork){OPENROUTER_KEY=ork;sessionStorage.setItem('pm_openrouter',ork);}
   if(fk){FMP_KEY=fk;sessionStorage.setItem('pm_fmp',fk);}
   if(ak){AV_KEY=ak;sessionStorage.setItem('pm_av',ak);}
   updateApiStatus();
