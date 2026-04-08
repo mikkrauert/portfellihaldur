@@ -599,7 +599,7 @@ window.addEventListener('load',()=>{
 
 function initApp(){
   const ork=document.getElementById('apiKeyInput').value.trim();
-  if(!ork||!ork.startsWith('sk-or-')){alert('Sisesta kehtiv OpenRouter API võti');return;}
+  if(!ork||ork.length<10){alert('Sisesta kehtiv OpenRouter API võti');return;}
   OPENROUTER_KEY=ork;
   FMP_KEY=document.getElementById('fmpKeyInput').value.trim();
   AV_KEY=document.getElementById('avKeyInput').value.trim();
@@ -620,7 +620,8 @@ function launchApp(){
   document.getElementById('appScreen').classList.add('visible');
   updateApiStatus();
   renderAll();
-  refreshPrices(); 
+  // Non-blocking background price refresh
+  setTimeout(()=>refreshPrices(), 500);
 }
 
 // ═══════════════════════════════════════════
@@ -791,7 +792,7 @@ function renderPortfolioMetrics(){
     </div>`;
   }).join('');
   const winners=portfolio.filter(x=>x.pl>0).length;
-  const top3loss=portfolio.filter(x=>x.pl<0).sort((a,b)=>toEur(a.pl, a.currency)-toEur(b.pl, b.currency)).slice(0,3);
+  const top3loss=portfolio.filter(x=>x.pl<0).sort((a,b)=>a.pl-b.pl).slice(0,3);
   
   document.getElementById('portfolioMetricsContent').innerHTML=`
     <div style="margin-bottom:14px">${catBars}</div>
@@ -844,7 +845,7 @@ function openTv(ticker,cat){
     allow_symbol_change:false,
     calendar:false,
     support_host:'https://www.tradingview.com',
-    studies:['RSI@tv-studioes','MACD@tv-studioes','MASimple@tv-studioes'],
+    studies:['RSI@tv-basicstudies','MACD@tv-basicstudies','MASimple@tv-basicstudies'],
   });
   container.appendChild(script);
   document.getElementById('tvModal').classList.add('open');
@@ -893,6 +894,12 @@ async function refreshPrices(){
   btn.innerHTML=`↻ Hinnad${updated?` (${updated})`:' (!Balti)'}`;
   btn.disabled=false;
   setTimeout(()=>btn.innerHTML='↻ Hinnad',5000);
+  // Fetch AV technicals for a few USA tickers if key available
+  if(AV_KEY){
+    const usaTickers=portfolio.filter(s=>s.cat==='USA').slice(0,3).map(s=>s.ticker);
+    for(const t of usaTickers){ await fetchTechnicals(t); }
+    renderTable();
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -1273,11 +1280,11 @@ function filterNews(type,el){
   el.classList.add('active');
   document.querySelectorAll('.news-item').forEach(item=>{
     item.style.display=
-      type==='all'?'':
-      type==='pos'&&item.dataset.sent==='pos'?'':
-      type==='neg'&&item.dataset.sent==='neg'?'':
-      type==='portfolio'&&item.dataset.scope==='portfolio'?'':
-      type==='macro'&&item.dataset.scope==='macro'?'':
+      type==='all'?'block':
+      type==='pos'&&item.dataset.sent==='pos'?'block':
+      type==='neg'&&item.dataset.sent==='neg'?'block':
+      type==='portfolio'&&item.dataset.scope==='portfolio'?'block':
+      type==='macro'&&item.dataset.scope==='macro'?'block':
       'none';
   });
 }
