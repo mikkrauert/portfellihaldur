@@ -950,7 +950,7 @@ async function fetchTechnicals(ticker){
 // ═══════════════════════════════════════════
 // GEMINI API
 // ═══════════════════════════════════════════
-async function gemini(system, user, maxTokens=1000){
+async function gemini(system, user, maxTokens=1000, isJson=false){
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
   const payload = {
     system_instruction: {
@@ -963,9 +963,13 @@ async function gemini(system, user, maxTokens=1000){
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature: 0.2
-      responseMimeType: "application/json"
     }
   };
+
+  // Kui isJson on tõene, sunnime Geminit tagastama ainult kehtiva JSON-i
+  if(isJson) {
+    payload.generationConfig.responseMimeType = "application/json";
+  }
 
   const r = await fetch(url, {
     method: 'POST',
@@ -1015,6 +1019,7 @@ async function runFullAnalysis(){
   document.getElementById('analysisContent').innerHTML=`<div class="empty"><span class="loader" style="width:22px;height:22px;border-width:3px"></span><div class="empty-title" style="margin-top:16px">Analüüsin ${portfolio.length} positsiooni...</div><div class="empty-sub">Gemini hindab fundamentaale, riske ja annab soovitused</div></div>`;
   try{
     const ctx=portfolioCtx();
+    // isJson = true
     const raw=await gemini(
       `Sa oled kogenud portfellianalüütik. Tagasta AINULT kehtiv JSON:
 {
@@ -1033,9 +1038,10 @@ async function runFullAnalysis(){
   }]
 }`,
       `${ctx}\n\nAnna ausad soovitused. Ole konkreetne, ära anna kõigile "HOIA".`,
-      4096
+      4096,
+      true 
     );
-    console.log("Gemini tagastas:", raw);
+    console.log("Gemini JSON tagastus (Analüüs):", raw);
     const result=JSON.parse(raw.replace(/```json|```/g,'').trim());
     analysisData=result;
     result.holdings?.forEach(h=>{
@@ -1112,8 +1118,10 @@ async function generateIdeas(){
 Genereeri täpselt 6 ostuideed.`,
       `Portfell: ${portfolio.map(s=>s.ticker).join(', ')}.
 Paku 6 uut hajutavat ostukandidaati — ei dubleeri olemasolevaid, on hetkel atraktiivselt hinnastatud, omavad selget investeerimisteemat. Kaasa vähemalt 1-2 Euroopa aktsiat.`,
-      2000
+      2000,
+      true
     );
+    console.log("Gemini JSON tagastus (Ideed):", raw);
     ideasData=JSON.parse(raw.replace(/```json|```/g,'').trim()).ideas||[];
     document.getElementById('ideasGrid').innerHTML=ideasData.map(idea=>`
       <div class="idea-card">
@@ -1150,8 +1158,10 @@ async function generateNews(){
 {"news":[{"headline":"Uudise pealkiri eesti keeles","summary":"2-3 lauset mõjust portfellile eesti keeles","affected_tickers":["TICK"],"sentiment":"pos|neg|neu","scope":"portfolio|macro","impact":"kõrge|keskmine|madal"}]}
 Genereeri 10-12 uudist.`,
       `${portfolioCtx()}\n\nGenereeri olulised uudised ja katalüsaatorid: olemasolevad positsioonid, makromajandus (intressimäärad, tariiifid, dollar), AI trend, energiahinnad. Ole konkreetne ja actionable.`,
-      2500
+      2500,
+      true
     );
+    console.log("Gemini JSON tagastus (Uudised):", raw);
     newsData=JSON.parse(raw.replace(/```json|```/g,'').trim()).news||[];
     renderNewsList();
   }catch(e){
@@ -1191,9 +1201,12 @@ async function sendChat(){
   msgs.innerHTML+=`<div class="msg msg-ai" id="${lid}"><span class="loader"></span></div>`;
   msgs.scrollTop=msgs.scrollHeight;
   try{
+    // isJson = false, tahame siin tavalist Markdowni!
     const reply=await gemini(
       `Sa oled kogenud portfellianalüütik. ${portfolioCtx()}\n${analysisData?'Viimane analüüs olemas.':''}\nVasta eesti keeles. Ole konkreetne, aus, anna numbrilisi näiteid. Kasuta **bold** tähtsamate punktide jaoks.`,
-      msg,1500
+      msg,
+      1500,
+      false 
     );
     document.getElementById(lid).innerHTML=reply.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
   }catch(e){
