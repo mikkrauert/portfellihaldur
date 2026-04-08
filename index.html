@@ -244,6 +244,40 @@ body{background:var(--bg);color:var(--text);font-family:var(--display);min-heigh
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
 .divider-text{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
 
+/* Group headers in table */
+.group-header-row td{
+  padding:8px 12px 6px;
+  background:var(--bg3);
+  border-bottom:1px solid var(--border);
+  border-top:1px solid var(--border);
+}
+.group-header-row:first-child td{border-top:none;}
+.group-label{
+  font-family:var(--mono);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  font-weight:500;
+}
+.group-summary{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--muted);
+  display:flex;
+  gap:16px;
+  margin-top:2px;
+  flex-wrap:wrap;
+}
+
+/* Topbar triple stats */
+.topbar-stat-group{display:flex;flex-direction:column;gap:1px;padding:0 12px;border-left:1px solid var(--border);}
+.topbar-stat-group:first-child{border-left:none;padding-left:0;}
+.topbar-stat-group-label{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:3px;}
+.topbar-stat-row{display:flex;gap:14px;}
+.topbar-mini{display:flex;flex-direction:column;}
+.topbar-mini-label{font-family:var(--mono);font-size:8px;color:var(--muted);}
+.topbar-mini-value{font-family:var(--mono);font-size:11px;font-weight:500;}
+
 @media(max-width:900px){
   .summary-row{grid-template-columns:repeat(3,1fr);}
   .ideas-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
@@ -266,12 +300,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--display);min-heigh
   <div class="setup-inner">
     <div class="setup-logo">Portfellihaldur v2.0</div>
     <h1 class="setup-title">Tark<br><span>portfellihaldus.</span></h1>
-    <p class="setup-sub">Reaalajahinnad, tehniline analüüs, analüütikute soovitused ja Meta Llama AI — kõik ühes tööriistas. Sinu andmed jäävad ainult sinu brauserisse.</p>
+    <p class="setup-sub">Reaalajahinnad, tehniline analüüs, analüütikute soovitused ja Claude AI — kõik ühes tööriistas. Sinu andmed jäävad ainult sinu brauserisse.</p>
 
     <div class="setup-section">
-      <div class="setup-label">OpenRouter API võti <span style="color:var(--red);margin-left:4px">*</span></div>
-      <input type="password" class="setup-input" id="apiKeyInput" placeholder="sk-or-v1-..." autocomplete="off">
-      <p class="setup-hint">Loo tasuta võti: <code>openrouter.ai/keys</code></p>
+      <div class="setup-label">Claude API võti <span style="color:var(--red);margin-left:4px">*</span></div>
+      <input type="password" class="setup-input" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off">
+      <p class="setup-hint">Leia: <code>console.anthropic.com</code> → API Keys</p>
     </div>
 
     <div class="setup-section">
@@ -348,14 +382,23 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
           <div class="section-title">Positsioonid</div>
           <div class="section-sub" id="portfolioSub"></div>
         </div>
-        <div class="filter-bar">
-          <span class="filter-label">Filter:</span>
-          <button class="filter-btn active" onclick="filterPortfolio('all',this)">Kõik</button>
-          <button class="filter-btn" onclick="filterPortfolio('Balti',this)">Balti</button>
-          <button class="filter-btn" onclick="filterPortfolio('USA',this)">USA</button>
-          <button class="filter-btn" onclick="filterPortfolio('ETF',this)">ETF</button>
-          <button class="filter-btn" onclick="filterPortfolio('Krüpto',this)">Krüpto</button>
-          <button class="filter-btn" onclick="filterPortfolio('neg',this)">Kahjumis</button>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <div class="filter-bar">
+            <span class="filter-label">Filter:</span>
+            <button class="filter-btn active" onclick="filterPortfolio('all',this)">Kõik</button>
+            <button class="filter-btn" onclick="filterPortfolio('Balti',this)">Balti</button>
+            <button class="filter-btn" onclick="filterPortfolio('USA',this)">USA</button>
+            <button class="filter-btn" onclick="filterPortfolio('ETF',this)">ETF</button>
+            <button class="filter-btn" onclick="filterPortfolio('Krüpto',this)">Krüpto</button>
+            <button class="filter-btn" onclick="filterPortfolio('Euroopa',this)">Euroopa</button>
+            <button class="filter-btn" onclick="filterPortfolio('neg',this)">Kahjumis</button>
+          </div>
+          <div class="filter-bar" style="border-left:1px solid var(--border);padding-left:10px">
+            <span class="filter-label">Grupeeri:</span>
+            <button class="filter-btn active" id="grp-cat" onclick="setGroup('cat',this)">Turg</button>
+            <button class="filter-btn" id="grp-cur" onclick="setGroup('currency',this)">Valuuta</button>
+            <button class="filter-btn" id="grp-none" onclick="setGroup(null,this)">—</button>
+          </div>
         </div>
       </div>
       <div class="ptable-wrap">
@@ -513,8 +556,8 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
           <div class="acard-title">API võtmed</div>
           <div style="display:flex;flex-direction:column;gap:10px">
             <div class="form-group">
-              <label class="form-label">OpenRouter API võti</label>
-              <input type="password" class="form-input" id="s-or" placeholder="sk-or-v1-...">
+              <label class="form-label">Claude API võti</label>
+              <input type="password" class="form-input" id="s-claude" placeholder="sk-ant-api03-...">
             </div>
             <div class="form-group">
               <label class="form-label">FMP API võti <span class="optional-badge">vabatahtlik</span></label>
@@ -571,8 +614,9 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-let OPENROUTER_KEY='', FMP_KEY='', AV_KEY='';
-const MODEL='meta-llama/llama-3.3-70b-instruct:free'; // Uus ja võimsam Llama 3.3 tasuta mudel OpenRouterist
+let CLAUDE_KEY='', FMP_KEY='', AV_KEY='';
+const MODEL='claude-sonnet-4-6';
+const CLAUDE_URL='https://api.anthropic.com/v1/messages';
 
 let eurUsdRate = 1.08; 
 
@@ -586,24 +630,24 @@ const toEur = (val, cur) => cur === 'USD' ? val / eurUsdRate : val;
 // INIT
 // ═══════════════════════════════════════════
 window.addEventListener('load',()=>{
-  const ork=sessionStorage.getItem('pm_openrouter');
+  const ck=sessionStorage.getItem('pm_claude');
   const fk=sessionStorage.getItem('pm_fmp');
   const ak=sessionStorage.getItem('pm_av');
   const pf=localStorage.getItem('pm_portfolio');
-  if(ork&&pf){
-    OPENROUTER_KEY=ork; FMP_KEY=fk||''; AV_KEY=ak||'';
+  if(ck&&pf){
+    CLAUDE_KEY=ck; FMP_KEY=fk||''; AV_KEY=ak||'';
     portfolio=JSON.parse(pf);
     launchApp();
   }
 });
 
 function initApp(){
-  const ork=document.getElementById('apiKeyInput').value.trim();
-  if(!ork||ork.length<10){alert('Sisesta kehtiv OpenRouter API võti');return;}
-  OPENROUTER_KEY=ork;
+  const ck=document.getElementById('apiKeyInput').value.trim();
+  if(!ck||!ck.startsWith('sk-ant-')){alert('Sisesta kehtiv Claude API võti (algab sk-ant-...)');return;}
+  CLAUDE_KEY=ck;
   FMP_KEY=document.getElementById('fmpKeyInput').value.trim();
   AV_KEY=document.getElementById('avKeyInput').value.trim();
-  sessionStorage.setItem('pm_openrouter',ork);
+  sessionStorage.setItem('pm_claude',ck);
   if(FMP_KEY) sessionStorage.setItem('pm_fmp',FMP_KEY);
   if(AV_KEY) sessionStorage.setItem('pm_av',AV_KEY);
   const raw=document.getElementById('portfolioInput').value.trim();
@@ -630,11 +674,28 @@ function launchApp(){
 const BALTI=['BERCM','ENGI','EGR1T','IGN1L','INF1T','LHV1T','MAGIC','TSM1T','KRP','HAE1T','TKM1T','MRK1T','NCN1T','APG1T'];
 const ETF_KEYS=['ZPRG','SEBASSEL','VUSA','IWDA','CSPX','VWRL','XETRA'];
 const CRYPTO=['BTC','ETH','ADA','SOL','DOT','MATIC','AVAX','XRP','BNB','DOGE'];
+// Euroopa aktsiad (EUR) — Helsingi, Pariis, Amsterdam, Frankfurt, Stockholm jne
+const EUROPE_EUR=[
+  'NESTE','FORTUM','NOKIA','SAMPO','UPM','STERV','KNEBV','ORION',  // Soome (Helsingi)
+  'MC','OR','TTE','SAN','BNP','AXA','AI','SGO','DG','RI','VIE','RMS', // Pariis (EUR)
+  'ASML','HEIA','INGA','PHIA','REN','NN','ABN','RAND',               // Amsterdam
+  'SAP','SIE','ALV','BMW','MBG','VOW3','DTE','DB1','BAS','BAYN',    // Frankfurt
+  'PNKTD','PNKT',                                                    // Pinduoduo ADR-id EUR
+  'KRP','GNRC',                                                      // Muud EUR-listed
+];
+// Aktsiad, mida LHV kuvab EUR-hinnaga (lõpuga 1T, 1L on Nasdaq Baltic GDR-id)
+function isEuropeEur(ticker){
+  if(EUROPE_EUR.includes(ticker)) return true;
+  // LHV Nasdaq Balticu GDR-id lõpevad 1T või 1L — need on EUR-hinnaga
+  if(/1T$|1L$/.test(ticker)) return true;
+  return false;
+}
 
 function guessCategory(ticker){
   if(BALTI.includes(ticker)) return 'Balti';
   if(CRYPTO.includes(ticker)) return 'Krüpto';
   if(ETF_KEYS.some(e=>ticker.includes(e))) return 'ETF';
+  if(isEuropeEur(ticker)) return 'Euroopa';
   return 'USA';
 }
 
@@ -680,19 +741,56 @@ function renderAll(){
 }
 
 function updateTopbar(){
-  const total=portfolio.reduce((s,x)=>s+toEur(x.qty*x.curPrice, x.currency),0);
-  const cost=portfolio.reduce((s,x)=>s+toEur(x.qty*x.buyPrice, x.currency),0);
-  const pl=total-cost;
-  const pct=cost>0?(pl/cost*100):0;
+  const eurStocks = portfolio.filter(s=>s.currency==='EUR');
+  const usdStocks = portfolio.filter(s=>s.currency==='USD');
+
+  const eurVal  = eurStocks.reduce((s,x)=>s+x.qty*x.curPrice,0);
+  const eurCost = eurStocks.reduce((s,x)=>s+x.qty*x.buyPrice,0);
+  const eurPl   = eurVal-eurCost;
+
+  const usdVal  = usdStocks.reduce((s,x)=>s+x.qty*x.curPrice,0);
+  const usdCost = usdStocks.reduce((s,x)=>s+x.qty*x.buyPrice,0);
+  const usdPl   = usdVal-usdCost;
+
+  const totalEur = portfolio.reduce((s,x)=>s+toEur(x.qty*x.curPrice,x.currency),0);
+  const costEur  = portfolio.reduce((s,x)=>s+toEur(x.qty*x.buyPrice,x.currency),0);
+  const plEur    = totalEur-costEur;
+  const plPct    = costEur>0?(plEur/costEur*100):0;
+
+  const fmt = (n,sym)=>`${sym}${Math.round(Math.abs(n)).toLocaleString('et-EE')}`;
+  const plCls = p=>p>=0?'pos':'neg';
+  const plSign = p=>p>=0?'+':'-';
+
   document.getElementById('topbarStats').innerHTML=`
-    <div><div class="topbar-stat-label">Väärtus</div><div class="topbar-stat-value">€${Math.round(total).toLocaleString('et-EE')}</div></div>
-    <div><div class="topbar-stat-label">P&L</div><div class="topbar-stat-value ${pl>=0?'pos':'neg'}">${pl>=0?'+':''}€${Math.round(pl).toLocaleString('et-EE')} (${pct>=0?'+':''}${pct.toFixed(1)}%)</div></div>
-    <div><div class="topbar-stat-label">Positsioonid</div><div class="topbar-stat-value">${portfolio.length}</div></div>`;
+    <div class="topbar-stat-group">
+      <div class="topbar-stat-group-label">EUR positsioonid</div>
+      <div class="topbar-stat-row">
+        <div class="topbar-mini"><span class="topbar-mini-label">Väärtus</span><span class="topbar-mini-value">€${Math.round(eurVal).toLocaleString('et-EE')}</span></div>
+        <div class="topbar-mini"><span class="topbar-mini-label">P&L</span><span class="topbar-mini-value ${plCls(eurPl)}">${plSign(eurPl)}€${Math.round(Math.abs(eurPl)).toLocaleString('et-EE')}</span></div>
+        <div class="topbar-mini"><span class="topbar-mini-label">Soetus</span><span class="topbar-mini-value">€${Math.round(eurCost).toLocaleString('et-EE')}</span></div>
+      </div>
+    </div>
+    <div class="topbar-stat-group">
+      <div class="topbar-stat-group-label">USD positsioonid</div>
+      <div class="topbar-stat-row">
+        <div class="topbar-mini"><span class="topbar-mini-label">Väärtus</span><span class="topbar-mini-value">$${Math.round(usdVal).toLocaleString('et-EE')}</span></div>
+        <div class="topbar-mini"><span class="topbar-mini-label">P&L</span><span class="topbar-mini-value ${plCls(usdPl)}">${plSign(usdPl)}$${Math.round(Math.abs(usdPl)).toLocaleString('et-EE')}</span></div>
+        <div class="topbar-mini"><span class="topbar-mini-label">Soetus</span><span class="topbar-mini-value">$${Math.round(usdCost).toLocaleString('et-EE')}</span></div>
+      </div>
+    </div>
+    <div class="topbar-stat-group">
+      <div class="topbar-stat-group-label">Kokku eurodes</div>
+      <div class="topbar-stat-row">
+        <div class="topbar-mini"><span class="topbar-mini-label">Väärtus</span><span class="topbar-mini-value">€${Math.round(totalEur).toLocaleString('et-EE')}</span></div>
+        <div class="topbar-mini"><span class="topbar-mini-label">P&L</span><span class="topbar-mini-value ${plCls(plEur)}">${plSign(plEur)}€${Math.round(Math.abs(plEur)).toLocaleString('et-EE')} (${plPct>=0?'+':''}${plPct.toFixed(1)}%)</span></div>
+        <div class="topbar-mini"><span class="topbar-mini-label">Soetus</span><span class="topbar-mini-value">€${Math.round(costEur).toLocaleString('et-EE')}</span></div>
+      </div>
+    </div>`;
 }
 
 function updateApiStatus(){
   document.getElementById('apiStatus').innerHTML=`
-    <span class="api-dot ok" title="AI aktiivne"></span>
+    <span class="api-dot ${CLAUDE_KEY?'ok':'off'}" title="Claude ${CLAUDE_KEY?'aktiivne':'puudub'}"></span>
     ${FMP_KEY?'<span class="api-dot ok" title="FMP aktiivne"></span>':'<span class="api-dot off" title="FMP puudub"></span>'}
     ${AV_KEY?'<span class="api-dot ok" title="AV aktiivne"></span>':'<span class="api-dot off" title="AV puudub"></span>'}`;
 }
@@ -725,21 +823,28 @@ function renderSummary(){
   document.getElementById('portfolioSub').textContent=`${winners} kasumis · ${portfolio.length-winners} kahjumis`;
 }
 
+// Grupeerimise režiim: 'cat' | 'currency' | null
+let groupMode = 'cat';
+
 function renderTable(){
   let rows=activeFilter==='all'?[...portfolio]:
            activeFilter==='neg'?portfolio.filter(s=>s.pl<0):
            portfolio.filter(s=>s.cat===activeFilter);
+
   rows.sort((a,b)=>{
     let av,bv;
     if(sortCol==='ticker'){return sortDir*(a.ticker<b.ticker?-1:a.ticker>b.ticker?1:0);}
-    if(sortCol==='value'){av=toEur(a.qty*a.curPrice, a.currency); bv=toEur(b.qty*b.curPrice, b.currency);}
+    if(sortCol==='value'){av=toEur(a.qty*a.curPrice,a.currency);bv=toEur(b.qty*b.curPrice,b.currency);}
     else if(sortCol==='plPct'){av=a.buyPrice>0?(a.curPrice-a.buyPrice)/a.buyPrice:0;bv=b.buyPrice>0?(b.curPrice-b.buyPrice)/b.buyPrice:0;}
     else{av=a[sortCol]||0;bv=b[sortCol]||0;}
     return sortDir*(bv-av);
   });
 
-  document.getElementById('portfolioBody').innerHTML=rows.map(s=>{
-    const valInEur=toEur(s.qty*s.curPrice, s.currency);
+  const catColors={Balti:'#4caf82',USA:'#5c9fe0',ETF:'#c9a84c',Krüpto:'#e05c5c',Euroopa:'#a78bfa',Muu:'#7a7870'};
+  const curColors={EUR:'#4caf82',USD:'#5c9fe0'};
+
+  function rowHtml(s){
+    const valInEur=toEur(s.qty*s.curPrice,s.currency);
     const plPct=s.buyPrice>0?((s.curPrice-s.buyPrice)/s.buyPrice*100):0;
     const qty=s.qty%1===0?s.qty:s.qty.toFixed(s.qty<1?6:4);
     const rec=s.rec?`<span class="rec-pill rec-${s.rec}">${s.rec==='buy'?'Osta':s.rec==='sell'?'Müü':'Hoia'}</span>`:'<span class="tag">—</span>';
@@ -747,10 +852,9 @@ function renderTable(){
     const peCell=s.pe!=null?`<span class="${s.pe>30?'neg':s.pe<15?'pos':''}">${s.pe.toFixed(1)}</span>`:'<span class="tag">—</span>';
     const rsiCell=s.rsi!=null?`<span class="${s.rsi<30?'pos':s.rsi>70?'neg':''}">${s.rsi.toFixed(0)}</span>`:'<span class="tag">—</span>';
     const analCell=s.analystRating?`<span class="tag" style="color:${s.analystRating.includes('Buy')?'var(--green)':s.analystRating.includes('Sell')?'var(--red)':'var(--muted)'}">${s.analystRating}</span>`:'<span class="tag">—</span>';
-    const sym = s.currency === 'USD' ? '$' : '€'; 
-    
+    const sym=s.currency==='USD'?'$':'€';
     return `<tr>
-      <td><span class="ticker-sym">${s.ticker}</span><span class="cat-pill">${s.cat}</span><div class="ticker-name">${s.name!==s.ticker?s.name:''}</div></td>
+      <td><span class="ticker-sym">${s.ticker}</span>${groupMode?'':`<span class="cat-pill">${s.cat}</span>`}<div class="ticker-name">${s.name!==s.ticker?s.name:''}</div></td>
       <td>${qty}</td>
       <td>${sym}${s.buyPrice.toFixed(2)}</td>
       <td>${sym}${s.curPrice.toFixed(2)}</td>
@@ -765,7 +869,57 @@ function renderTable(){
       <td><button class="btn btn-tv" onclick="openTv('${s.ticker}','${s.cat}')">📈 TV</button></td>
       <td><button class="btn btn-ghost btn-sm" onclick="removeStock('${s.ticker}')">✕</button></td>
     </tr>`;
-  }).join('');
+  }
+
+  function groupHeaderHtml(key, groupRows, color){
+    const gVal = groupRows.reduce((s,x)=>s+toEur(x.qty*x.curPrice,x.currency),0);
+    const gPl  = groupRows.reduce((s,x)=>s+toEur(x.pl,x.currency),0);
+    const gPct = groupRows.reduce((s,x)=>s+toEur(x.qty*x.buyPrice,x.currency),0);
+    const pct  = gPct>0?(gPl/gPct*100):0;
+    return `<tr class="group-header-row">
+      <td colspan="14">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>
+          <span class="group-label" style="color:${color}">${key}</span>
+          <div class="group-summary">
+            <span>€${Math.round(gVal).toLocaleString('et-EE')}</span>
+            <span class="${gPl>=0?'pos':'neg'}">${gPl>=0?'+':''}€${Math.round(gPl).toLocaleString('et-EE')} (${pct>=0?'+':''}${pct.toFixed(1)}%)</span>
+            <span style="color:var(--muted)">${groupRows.length} positsiooni</span>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  let html='';
+
+  if(groupMode && activeFilter==='all'){
+    // Grupeeri kas kategooria või valuuta järgi
+    const keyFn = groupMode==='cat' ? s=>s.cat : s=>s.currency;
+    const colorFn = groupMode==='cat' ? k=>catColors[k]||'#7a7870' : k=>curColors[k]||'#7a7870';
+    // Grupi järjekord
+    const order = groupMode==='cat'
+      ? ['Balti','Euroopa','USA','ETF','Krüpto','Muu']
+      : ['EUR','USD'];
+    const groups={};
+    rows.forEach(s=>{const k=keyFn(s);if(!groups[k])groups[k]=[];groups[k].push(s);});
+    order.forEach(key=>{
+      if(!groups[key]||!groups[key].length) return;
+      html += groupHeaderHtml(key, groups[key], colorFn(key));
+      html += groups[key].map(rowHtml).join('');
+    });
+    // Catch-all muud grupid
+    Object.keys(groups).forEach(k=>{
+      if(!order.includes(k)){
+        html += groupHeaderHtml(k, groups[k], '#7a7870');
+        html += groups[k].map(rowHtml).join('');
+      }
+    });
+  } else {
+    html = rows.map(rowHtml).join('');
+  }
+
+  document.getElementById('portfolioBody').innerHTML=html;
 }
 
 function renderChatTickers(){
@@ -783,7 +937,7 @@ function renderPortfolioMetrics(){
   const total=portfolio.reduce((s,x)=>s+toEur(x.qty*x.curPrice, x.currency),0);
   const cats={};
   portfolio.forEach(s=>{if(!cats[s.cat])cats[s.cat]=0;cats[s.cat]+=toEur(s.qty*s.curPrice, s.currency);});
-  const colors={Balti:'#4caf82',USA:'#5c9fe0',ETF:'#c9a84c',Krüpto:'#e05c5c',Muu:'#7a7870'};
+  const colors={Balti:'#4caf82',USA:'#5c9fe0',ETF:'#c9a84c',Krüpto:'#e05c5c',Euroopa:'#a78bfa',Muu:'#7a7870'};
   const catBars=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>{
     const pct=(val/total*100).toFixed(1);
     return`<div style="margin-bottom:8px">
@@ -865,7 +1019,7 @@ async function refreshPrices(){
   btn.disabled=true;
   
   try {
-    const fxurl = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=1d`;
+    const fxurl = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=1d&t=${Date.now()}`;
     const fxres = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(fxurl)}`);
     const fxd = await fxres.json();
     const rate = fxd?.chart?.result?.[0]?.meta?.regularMarketPrice;
@@ -880,7 +1034,7 @@ async function refreshPrices(){
     if(s.cat==='Balti') continue; 
     try{
       const sym=cryptoMap[s.ticker]||(s.cat==='ETF'?`${s.ticker}.DE`:s.ticker);
-      const url=`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
+      const url=`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d&t=${Date.now()}`;
       const r=await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
       if(!r.ok) continue;
       const d=await r.json();
@@ -894,12 +1048,6 @@ async function refreshPrices(){
   btn.innerHTML=`↻ Hinnad${updated?` (${updated})`:' (!Balti)'}`;
   btn.disabled=false;
   setTimeout(()=>btn.innerHTML='↻ Hinnad',5000);
-  // Fetch AV technicals for a few USA tickers if key available
-  if(AV_KEY){
-    const usaTickers=portfolio.filter(s=>s.cat==='USA').slice(0,3).map(s=>s.ticker);
-    for(const t of usaTickers){ await fetchTechnicals(t); }
-    renderTable();
-  }
 }
 
 // ═══════════════════════════════════════════
@@ -948,6 +1096,13 @@ async function fetchFundamentals(){
   btn.innerHTML=`↻ Fundamentaalid (${ok})`;
   btn.disabled=false;
   setTimeout(()=>btn.innerHTML='↻ Fundamentaalid',5000);
+
+  // AV tehnilised näitajad — laetakse koos fundamentaalidega, säästab limiiti
+  if(AV_KEY){
+    const usaTickers=portfolio.filter(s=>s.cat==='USA').slice(0,3).map(s=>s.ticker);
+    for(const t of usaTickers){ await fetchTechnicals(t); }
+    renderTable();
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -976,43 +1131,32 @@ async function fetchTechnicals(ticker){
 }
 
 // ═══════════════════════════════════════════
-// OPENROUTER / LLAMA 3 API
+// CLAUDE API
 // ═══════════════════════════════════════════
 async function callAI(system, user, maxTokens=1000, isJson=false){
-  const url = `https://openrouter.ai/api/v1/chat/completions`;
-  
-  if (isJson) {
-      system += "\n\nOLED MASIN, MIS VÄLJASTAB AINULT VALIIDSET JSON FORMAATI. ÄRA ÜTLE TERE, ÄRA KASUTA MARKDOWNI, AINULT JSON!";
-  }
-
-  const payload = {
-    model: MODEL,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user }
-    ],
-    max_tokens: maxTokens,
-    temperature: 0.2
-  };
-
-  const r = await fetch(url, {
+  const r = await fetch(CLAUDE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENROUTER_KEY}`,
-      'HTTP-Referer': window.location.href, 
-      'X-Title': 'Portfellihaldur'
+      'x-api-key': CLAUDE_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      system: isJson ? system + '\n\nTagasta AINULT kehtiv JSON, ilma markdown-i või muu tekstita.' : system,
+      messages: [{ role: 'user', content: user }]
+    })
   });
 
   if (!r.ok) {
     const e = await r.json().catch(()=>({}));
     throw new Error(e?.error?.message || `HTTP ${r.status}`);
   }
-  
+
   const d = await r.json();
-  return d.choices?.[0]?.message?.content || '';
+  return d.content?.[0]?.text || '';
 }
 
 function portfolioCtx(){
@@ -1257,6 +1401,13 @@ function qp(text){
 // ═══════════════════════════════════════════
 // FILTERS
 // ═══════════════════════════════════════════
+function setGroup(mode, el){
+  groupMode=mode;
+  document.querySelectorAll('#grp-cat,#grp-cur,#grp-none').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
 function filterPortfolio(cat,el){
   activeFilter=cat;
   document.querySelectorAll('#pane-portfolio .filter-btn').forEach(b=>b.classList.remove('active'));
@@ -1293,10 +1444,10 @@ function filterNews(type,el){
 // SETTINGS
 // ═══════════════════════════════════════════
 function saveKeys(){
-  const ork=document.getElementById('s-or').value.trim();
+  const ck=document.getElementById('s-claude').value.trim();
   const fk=document.getElementById('s-fmp').value.trim();
   const ak=document.getElementById('s-av').value.trim();
-  if(ork){OPENROUTER_KEY=ork;sessionStorage.setItem('pm_openrouter',ork);}
+  if(ck){CLAUDE_KEY=ck;sessionStorage.setItem('pm_claude',ck);}
   if(fk){FMP_KEY=fk;sessionStorage.setItem('pm_fmp',fk);}
   if(ak){AV_KEY=ak;sessionStorage.setItem('pm_av',ak);}
   updateApiStatus();
