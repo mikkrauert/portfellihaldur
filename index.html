@@ -417,6 +417,8 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
             <th onclick="sortBy('curPrice')">Turuhind ↕</th>
             <th>P/E</th>
             <th>RSI</th>
+            <th>12k siht</th>
+            <th>Upside</th>
             <th>Anal. konsensus</th>
             <th onclick="sortBy('value')">Väärtus (€) ↕</th>
             <th onclick="sortBy('pl')">P&L ↕</th>
@@ -736,7 +738,7 @@ function parsePortfolio(text){
       qty:nums[0], buyPrice:nums[1]||nums[0], curPrice:nums[2]||nums[1]||nums[0],
       pl:0, rec:null, signals:[],
       pe:null, eps:null, analystTarget:null, analystRating:null,
-      rsi:null, ma50:null, ma200:null
+      rsi:null, ma50:null, ma200:null, yearHigh:null, yearLow:null
     });
   }
   result.forEach(s=>{s.pl=(s.curPrice-s.buyPrice)*s.qty;});
@@ -866,8 +868,18 @@ function renderTable(){
     const sigs=(s.signals||[]).map(sg=>`<span class="sig ${sg.t==='bull'?'sig-bull':sg.t==='bear'?'sig-bear':'sig-neu'}">${sg.l}</span>`).join(' ');
     const peCell=s.pe!=null?`<span class="${s.pe>30?'neg':s.pe<15?'pos':''}">${s.pe.toFixed(1)}</span>`:'<span class="tag">—</span>';
     const rsiCell=s.rsi!=null?`<span class="${s.rsi<30?'pos':s.rsi>70?'neg':''}">${s.rsi.toFixed(0)}</span>`:'<span class="tag">—</span>';
-    const analCell=s.analystRating?`<span class="tag" style="color:${s.analystRating.includes('Buy')?'var(--green)':s.analystRating.includes('Sell')?'var(--red)':'var(--muted)'}">${s.analystRating}</span>`:'<span class="tag">—</span>';
     const sym=s.currency==='USD'?'$':'€';
+    // Hinnasiht ja upside
+    const targetCell = s.analystTarget
+      ? `<span class="pos" style="font-weight:500">${sym}${s.analystTarget.toFixed(0)}</span>`
+      : '<span class="tag">—</span>';
+    const upsidePct = s.analystTarget && s.curPrice>0
+      ? ((s.analystTarget - s.curPrice) / s.curPrice * 100)
+      : null;
+    const upsideCell = upsidePct!=null
+      ? `<span class="${upsidePct>=0?'pos':'neg'}" style="font-weight:500">${upsidePct>=0?'+':''}${upsidePct.toFixed(0)}%</span>`
+      : '<span class="tag">—</span>';
+    const analCell=s.analystRating?`<span class="tag" style="color:${s.analystRating.includes('Buy')?'var(--green)':s.analystRating.includes('Sell')?'var(--red)':'var(--muted)'}">${s.analystRating}</span>`:'<span class="tag">—</span>';
     return `<tr>
       <td><span class="ticker-sym">${s.ticker}</span>${groupMode?'':`<span class="cat-pill">${s.cat}</span>`}<div class="ticker-name">${s.name!==s.ticker?s.name:''}</div></td>
       <td>${qty}</td>
@@ -875,6 +887,8 @@ function renderTable(){
       <td>${sym}${s.curPrice.toFixed(2)}</td>
       <td>${peCell}</td>
       <td>${rsiCell}</td>
+      <td>${targetCell}</td>
+      <td>${upsideCell}</td>
       <td>${analCell}</td>
       <td>€${Math.round(valInEur).toLocaleString('et-EE')}</td>
       <td class="${s.pl>=0?'pos':'neg'}">${s.pl>=0?'+':''}${sym}${Math.round(s.pl)}</td>
@@ -892,7 +906,7 @@ function renderTable(){
     const gPct = groupRows.reduce((s,x)=>s+toEur(x.qty*x.buyPrice,x.currency),0);
     const pct  = gPct>0?(gPl/gPct*100):0;
     return `<tr class="group-header-row">
-      <td colspan="14">
+      <td colspan="16">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>
           <span class="group-label" style="color:${color}">${key}</span>
@@ -1121,20 +1135,31 @@ async function fetchFundamentals(){
   for(const s of targets){
     const ft = fmpTicker(s);
     try{
-      // 1. Quote — P/E, EPS
+      // 1. Quote — P/E, EPS, 52w high/low
       const q=await fetch(`https://financialmodelingprep.com/api/v3/quote/${ft}?apikey=${FMP_KEY}`);
       if(q.ok){
         const d=await q.json();
-        if(d[0]){s.pe=d[0].pe||null;s.eps=d[0].eps||null;}
+        if(d[0]){
+          s.pe = d[0].pe != null ? parseFloat(d[0].pe) : null;
+          s.eps = d[0].eps != null ? parseFloat(d[0].eps) : null;
+          s.yearHigh = d[0].yearHigh || null;
+          s.yearLow = d[0].yearLow || null;
+        }
       }
       await new Promise(r=>setTimeout(r,250));
 
-      // 2. RSI (14 päeva) — FMP technical indicator
-      const ri=await fetch(`https://financialmodelingprep.com/api/v3/technical_indicator/daily/${ft}?period=14&type=rsi&apikey=${FMP_KEY}`);
-      if(ri.ok){
-        const rd=await ri.json();
-        if(rd[0]?.rsi!=null){s.rsi=parseFloat(rd[0].rsi);rsiOk++;}
-      }
+      // 2. RSI — proovi FMP technical indicator (Premium) ja kui ei tule, jäta tühjaks
+      try{
+        const ri=await fetch(`https://financialmodelingprep.com/api/v3/technical_indicator/daily/${ft}?period=14&type=rsi&apikey=${FMP_KEY}`);
+        if(ri.ok){
+          const rd=await ri.json();
+          // FMP võib tagastada error objekti tasuta tieris
+          if(Array.isArray(rd) && rd[0]?.rsi != null){
+            s.rsi=parseFloat(rd[0].rsi);
+            rsiOk++;
+          }
+        }
+      }catch(e){}
       await new Promise(r=>setTimeout(r,250));
 
       // 3. Analüütikute soovitused + hinnasiht
@@ -1459,31 +1484,64 @@ async function generateIdeas(){
   try{
     const raw=await callAI(
       `Tagasta AINULT JSON:
-{"ideas":[{"ticker":"X","name":"Nimi","reason":"2-3 lauset eesti keeles","risk":"madal|keskmine|kõrge","sector":"sektor","upside_pct":25,"thesis":"üks lause tees","signals":["signaal1"]}]}
-Genereeri täpselt 6 ostuideed.`,
+{"ideas":[{
+  "ticker":"X",
+  "name":"Ettevõtte nimi",
+  "market_cap":"large|mid|small",
+  "reason":"2-3 lauset eesti keeles miks praegu atraktiivne",
+  "risk":"madal|keskmine|kõrge",
+  "sector":"sektor",
+  "upside_pct":35,
+  "analyst_target_usd":150,
+  "thesis":"üks lause investeerimistees",
+  "signals":["RSI < 40","Analüütikud: Strong Buy"],
+  "catalyst":"peamine lühiajaline katalüsaator eesti keeles"
+}]}
+Genereeri täpselt 12 ostuideed.`,
       `Portfell: ${portfolio.map(s=>s.ticker).join(', ')}.
-Paku 6 uut hajutavat ostukandidaati — ei dubleeri olemasolevaid, on hetkel atraktiivselt hinnastatud, omavad selget investeerimisteemat. Kaasa vähemalt 1-2 Euroopa aktsiat.`,
-      2000, true
+
+Otsi aktsiaid kus:
+1. Analüütikute 12-kuu hinnasiht on praegusest hinnast 25%+ kõrgemal (kõrge upside)
+2. RSI on alla 50 (ei ole üleostetud)
+3. Fundamentaalselt tugev ettevõte (kasvav käive, positiivne EPS)
+
+Jaga 12 ideed kolme gruppi:
+- 4 large-cap aktsiat (>$10B) — stabiilsed, kõrge analüütikute konsensus
+- 4 mid-cap aktsiat ($2B-$10B) — kõrgem kasvu potentsiaal
+- 4 small-cap või nišiaktsiat (<$2B) — kõrge risk, kõrge potentsiaal
+
+Kaasa vähemalt 2 Euroopa aktsiat. Ära korda olemasolevaid portfelli aktsiaid.
+Ole konkreetne: nimeta tegelikke hinnasihtide numbreid ja sektoreid.`,
+      3000, true
     );
     
     ideasData = parseJSON(raw).ideas || [];
-    document.getElementById('ideasGrid').innerHTML=ideasData.map(idea=>`
-      <div class="idea-card">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    const mcColor={'large':'var(--blue)','mid':'var(--gold)','small':'var(--red)'};
+    const mcLabel={'large':'Large-cap','mid':'Mid-cap','small':'Small-cap'};
+    document.getElementById('ideasGrid').innerHTML=ideasData.map(idea=>{
+      const mc=idea.market_cap||'';
+      return`<div class="idea-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
           <div><div class="idea-ticker">${idea.ticker}</div><div class="idea-name">${idea.name}</div></div>
-          ${idea.upside_pct?`<span class="tag pos">+${idea.upside_pct}%</span>`:''}
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+            ${idea.upside_pct?`<span class="tag pos" style="font-weight:600;font-size:11px">+${idea.upside_pct}% upside</span>`:''}
+            ${mc?`<span class="tag" style="color:${mcColor[mc]||'var(--muted)'}">${mcLabel[mc]||mc}</span>`:''}
+          </div>
         </div>
-        ${idea.thesis?`<div style="font-family:var(--serif);font-style:italic;font-size:11px;color:var(--gold);margin-bottom:7px">${idea.thesis}</div>`:''}
+        ${idea.analyst_target_usd?`<div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:5px">Analüütikute siht: <span style="color:var(--green);font-weight:500">${idea.analyst_target_usd}</span></div>`:''}
+        ${idea.thesis?`<div style="font-family:var(--serif);font-style:italic;font-size:11px;color:var(--gold);margin-bottom:6px">${idea.thesis}</div>`:''}
         <div class="idea-reason">${idea.reason}</div>
-        ${idea.signals?.length?`<div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">${idea.signals.map(sg=>`<span class="tag">${sg}</span>`).join('')}</div>`:''}
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+        ${idea.catalyst?`<div style="margin-top:7px;font-size:11px;background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.2);border-radius:5px;padding:5px 8px;color:var(--green)">⚡ ${idea.catalyst}</div>`:''}
+        ${idea.signals?.length?`<div style="display:flex;gap:4px;margin-top:7px;flex-wrap:wrap">${idea.signals.map(sg=>`<span class="tag">${sg}</span>`).join('')}</div>`:''}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
           <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${idea.sector||''}</span>
           <div style="display:flex;gap:6px;align-items:center">
             <span style="font-size:10px;font-weight:500;color:${idea.risk==='madal'?'var(--green)':idea.risk==='kõrge'?'var(--red)':'var(--gold)'}">risk: ${idea.risk||'—'}</span>
             <button class="btn btn-tv btn-xs" onclick="openTv('${idea.ticker}','USA')">📈 TV</button>
           </div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }catch(e){
     document.getElementById('ideasGrid').innerHTML=`<div class="empty"><div class="empty-sub">Viga: ${e.message}</div><button class="btn btn-outline btn-sm" onclick="generateIdeas()">Proovi uuesti</button></div>`;
   }
