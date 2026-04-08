@@ -262,17 +262,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--display);min-heigh
 </head>
 <body>
 
-<!-- SETUP -->
 <div id="setupScreen">
   <div class="setup-inner">
     <div class="setup-logo">Portfellihaldur v2.0</div>
     <h1 class="setup-title">Tark<br><span>portfellihaldus.</span></h1>
-    <p class="setup-sub">Reaalajahinnad, tehniline analüüs, analüütikute soovitused ja Claude AI — kõik ühes tööriistas. Sinu andmed jäävad ainult sinu brauserisse.</p>
+    <p class="setup-sub">Reaalajahinnad, tehniline analüüs, analüütikute soovitused ja Gemini AI — kõik ühes tööriistas. Sinu andmed jäävad ainult sinu brauserisse.</p>
 
     <div class="setup-section">
-      <div class="setup-label">Claude API võti <span style="color:var(--red);margin-left:4px">*</span></div>
-      <input type="password" class="setup-input" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off">
-      <p class="setup-hint">Leia: <code>console.anthropic.com</code> → API Keys</p>
+      <div class="setup-label">Gemini API võti <span style="color:var(--red);margin-left:4px">*</span></div>
+      <input type="password" class="setup-input" id="apiKeyInput" placeholder="AIzaSy..." autocomplete="off">
+      <p class="setup-hint">Leia: <code>aistudio.google.com/app/apikey</code> → Create API key</p>
     </div>
 
     <div class="setup-section">
@@ -303,7 +302,6 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
   </div>
 </div>
 
-<!-- TradingView Modal -->
 <div class="tv-modal" id="tvModal" onclick="closeTvModal(event)">
   <div class="tv-modal-inner">
     <div class="tv-modal-header">
@@ -317,7 +315,6 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
   </div>
 </div>
 
-<!-- APP -->
 <div id="appScreen">
   <div class="topbar">
     <div class="topbar-brand">Portfellihaldur</div>
@@ -344,7 +341,6 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
 
   <div class="content">
 
-    <!-- PORTFOLIO -->
     <div class="pane active" id="pane-portfolio">
       <div class="summary-row" id="summaryRow"></div>
       <div class="section-head">
@@ -385,12 +381,11 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
       </div>
     </div>
 
-    <!-- ANALYSIS -->
     <div class="pane" id="pane-analysis">
       <div id="analysisEmpty" class="empty">
         <div class="empty-icon">📡</div>
         <div class="empty-title">Analüüs pole käivitatud</div>
-        <div class="empty-sub">Claude analüüsib positsioone, hindab riske ja annab soovitused</div>
+        <div class="empty-sub">Gemini analüüsib positsioone, hindab riske ja annab soovitused</div>
         <button class="btn btn-gold" onclick="runFullAnalysis()">Käivita AI analüüs →</button>
       </div>
       <div id="analysisContent" class="hidden">
@@ -414,7 +409,6 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
       </div>
     </div>
 
-    <!-- IDEAS -->
     <div class="pane" id="pane-ideas">
       <div id="ideasEmpty" class="empty">
         <div class="empty-icon">💡</div>
@@ -430,7 +424,6 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
       </div>
     </div>
 
-    <!-- NEWS -->
     <div class="pane" id="pane-news">
       <div id="newsEmpty" class="empty">
         <div class="empty-icon">📰</div>
@@ -452,7 +445,6 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
       </div>
     </div>
 
-    <!-- METRICS -->
     <div class="pane" id="pane-metrics">
       <div class="section-head"><div class="section-title">Investori tööriistad & näidikud</div></div>
       <div class="metrics-2col" style="margin-bottom:16px">
@@ -486,7 +478,6 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
       </div>
     </div>
 
-    <!-- CHAT -->
     <div class="pane" id="pane-chat">
       <div class="section-head" style="margin-bottom:10px"><div class="section-title">AI assistent</div></div>
       <div class="quick-prompts">
@@ -514,7 +505,6 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
       </div>
     </div>
 
-    <!-- SETTINGS -->
     <div class="pane" id="pane-settings">
       <div class="section-head"><div class="section-title">Seaded</div></div>
       <div style="max-width:680px;display:flex;flex-direction:column;gap:14px">
@@ -523,8 +513,8 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
           <div class="acard-title">API võtmed</div>
           <div style="display:flex;flex-direction:column;gap:10px">
             <div class="form-group">
-              <label class="form-label">Claude API võti</label>
-              <input type="password" class="form-input" id="s-claude" placeholder="sk-ant-api03-...">
+              <label class="form-label">Gemini API võti</label>
+              <input type="password" class="form-input" id="s-gemini" placeholder="AIzaSy...">
             </div>
             <div class="form-group">
               <label class="form-label">FMP API võti <span class="optional-badge">vabatahtlik</span></label>
@@ -581,9 +571,8 @@ Toetab TAB-eraldajaga LHV formaati. Portfelli saab hiljem muuta Seadete alt."></
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-let CLAUDE_KEY='', FMP_KEY='', AV_KEY='';
-const MODEL='claude-sonnet-4-20250514';
-const CLAUDE_URL='https://api.anthropic.com/v1/messages';
+let GEMINI_KEY='', FMP_KEY='', AV_KEY='';
+const MODEL='gemini-1.5-flash';
 
 let portfolio=[];
 let sortCol='plPct', sortDir=-1, activeFilter='all';
@@ -593,24 +582,24 @@ let analysisData=null, ideasData=[], newsData=[];
 // INIT
 // ═══════════════════════════════════════════
 window.addEventListener('load',()=>{
-  const ck=sessionStorage.getItem('pm_claude');
+  const gk=sessionStorage.getItem('pm_gemini');
   const fk=sessionStorage.getItem('pm_fmp');
   const ak=sessionStorage.getItem('pm_av');
   const pf=localStorage.getItem('pm_portfolio');
-  if(ck&&pf){
-    CLAUDE_KEY=ck; FMP_KEY=fk||''; AV_KEY=ak||'';
+  if(gk&&pf){
+    GEMINI_KEY=gk; FMP_KEY=fk||''; AV_KEY=ak||'';
     portfolio=JSON.parse(pf);
     launchApp();
   }
 });
 
 function initApp(){
-  const ck=document.getElementById('apiKeyInput').value.trim();
-  if(!ck||!ck.startsWith('sk-')){alert('Sisesta kehtiv Claude API võti');return;}
-  CLAUDE_KEY=ck;
+  const gk=document.getElementById('apiKeyInput').value.trim();
+  if(!gk||!gk.startsWith('AIza')){alert('Sisesta kehtiv Gemini API võti');return;}
+  GEMINI_KEY=gk;
   FMP_KEY=document.getElementById('fmpKeyInput').value.trim();
   AV_KEY=document.getElementById('avKeyInput').value.trim();
-  sessionStorage.setItem('pm_claude',ck);
+  sessionStorage.setItem('pm_gemini',gk);
   if(FMP_KEY) sessionStorage.setItem('pm_fmp',FMP_KEY);
   if(AV_KEY) sessionStorage.setItem('pm_av',AV_KEY);
   const raw=document.getElementById('portfolioInput').value.trim();
@@ -691,7 +680,7 @@ function updateTopbar(){
 
 function updateApiStatus(){
   document.getElementById('apiStatus').innerHTML=`
-    <span class="api-dot ok" title="Claude aktiivsed"></span>
+    <span class="api-dot ok" title="Gemini aktiivne"></span>
     ${FMP_KEY?'<span class="api-dot ok" title="FMP aktiivne"></span>':'<span class="api-dot off" title="FMP puudub"></span>'}
     ${AV_KEY?'<span class="api-dot ok" title="AV aktiivne"></span>':'<span class="api-dot off" title="AV puudub"></span>'}`;
 }
@@ -959,22 +948,39 @@ async function fetchTechnicals(ticker){
 }
 
 // ═══════════════════════════════════════════
-// CLAUDE API
+// GEMINI API
 // ═══════════════════════════════════════════
-async function claude(system,user,maxTokens=1000){
-  const r=await fetch(CLAUDE_URL,{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key':CLAUDE_KEY,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
+async function gemini(system, user, maxTokens=1000){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
+  const payload = {
+    system_instruction: {
+      parts: [{ text: system }]
     },
-    body:JSON.stringify({model:MODEL,max_tokens:maxTokens,system,messages:[{role:'user',content:user}]})
+    contents: [{
+      role: "user",
+      parts: [{ text: user }]
+    }],
+    generationConfig: {
+      maxOutputTokens: maxTokens,
+      temperature: 0.2
+    }
+  };
+
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
   });
-  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error?.message||`HTTP ${r.status}`);}
-  const d=await r.json();
-  return d.content?.[0]?.text||'';
+
+  if (!r.ok) {
+    const e = await r.json().catch(()=>({}));
+    throw new Error(e?.error?.message || `HTTP ${r.status}`);
+  }
+  
+  const d = await r.json();
+  return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 function portfolioCtx(){
@@ -1005,10 +1011,10 @@ async function runFullAnalysis(){
   showTab('analysis');
   document.getElementById('analysisEmpty').classList.add('hidden');
   document.getElementById('analysisContent').classList.remove('hidden');
-  document.getElementById('analysisContent').innerHTML=`<div class="empty"><span class="loader" style="width:22px;height:22px;border-width:3px"></span><div class="empty-title" style="margin-top:16px">Analüüsin ${portfolio.length} positsiooni...</div><div class="empty-sub">Claude hindab fundamentaale, riske ja annab soovitused</div></div>`;
+  document.getElementById('analysisContent').innerHTML=`<div class="empty"><span class="loader" style="width:22px;height:22px;border-width:3px"></span><div class="empty-title" style="margin-top:16px">Analüüsin ${portfolio.length} positsiooni...</div><div class="empty-sub">Gemini hindab fundamentaale, riske ja annab soovitused</div></div>`;
   try{
     const ctx=portfolioCtx();
-    const raw=await claude(
+    const raw=await gemini(
       `Sa oled kogenud portfellianalüütik. Tagasta AINULT kehtiv JSON:
 {
   "overview":"4-5 lauset eesti keeles portfelli üldolukorrast",
@@ -1098,7 +1104,7 @@ async function generateIdeas(){
   document.getElementById('ideasContent').classList.remove('hidden');
   document.getElementById('ideasGrid').innerHTML=`<div class="empty"><span class="loader" style="width:20px;height:20px;border-width:3px"></span></div>`;
   try{
-    const raw=await claude(
+    const raw=await gemini(
       `Tagasta AINULT JSON:
 {"ideas":[{"ticker":"X","name":"Nimi","reason":"2-3 lauset eesti keeles","risk":"madal|keskmine|kõrge","sector":"sektor","upside_pct":25,"thesis":"üks lause tees","signals":["signaal1"]}]}
 Genereeri täpselt 6 ostuideed.`,
@@ -1137,7 +1143,7 @@ async function generateNews(){
   document.getElementById('newsContent').classList.remove('hidden');
   document.getElementById('newsList').innerHTML=`<div class="empty"><span class="loader" style="width:20px;height:20px;border-width:3px"></span></div>`;
   try{
-    const raw=await claude(
+    const raw=await gemini(
       `Tagasta AINULT JSON:
 {"news":[{"headline":"Uudise pealkiri eesti keeles","summary":"2-3 lauset mõjust portfellile eesti keeles","affected_tickers":["TICK"],"sentiment":"pos|neg|neu","scope":"portfolio|macro","impact":"kõrge|keskmine|madal"}]}
 Genereeri 10-12 uudist.`,
@@ -1183,7 +1189,7 @@ async function sendChat(){
   msgs.innerHTML+=`<div class="msg msg-ai" id="${lid}"><span class="loader"></span></div>`;
   msgs.scrollTop=msgs.scrollHeight;
   try{
-    const reply=await claude(
+    const reply=await gemini(
       `Sa oled kogenud portfellianalüütik. ${portfolioCtx()}\n${analysisData?'Viimane analüüs olemas.':''}\nVasta eesti keeles. Ole konkreetne, aus, anna numbrilisi näiteid. Kasuta **bold** tähtsamate punktide jaoks.`,
       msg,1500
     );
@@ -1239,10 +1245,10 @@ function filterNews(type,el){
 // SETTINGS
 // ═══════════════════════════════════════════
 function saveKeys(){
-  const ck=document.getElementById('s-claude').value.trim();
+  const gk=document.getElementById('s-gemini').value.trim();
   const fk=document.getElementById('s-fmp').value.trim();
   const ak=document.getElementById('s-av').value.trim();
-  if(ck){CLAUDE_KEY=ck;sessionStorage.setItem('pm_claude',ck);}
+  if(gk){GEMINI_KEY=gk;sessionStorage.setItem('pm_gemini',gk);}
   if(fk){FMP_KEY=fk;sessionStorage.setItem('pm_fmp',fk);}
   if(ak){AV_KEY=ak;sessionStorage.setItem('pm_av',ak);}
   updateApiStatus();
