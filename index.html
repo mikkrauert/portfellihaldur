@@ -1377,6 +1377,27 @@ async function runFullAnalysis(){
     });
     localStorage.setItem('pm_portfolio',JSON.stringify(portfolio));
     renderAll();
+
+    // Taasta analysisContent struktuur enne renderAnalysis kutsumist
+    document.getElementById('analysisContent').innerHTML=`
+      <div class="section-head">
+        <div><div class="section-title">Portfelli analüüs</div><div class="section-sub" id="analysisTs"></div></div>
+        <button class="btn btn-outline btn-sm" onclick="runFullAnalysis()">↻ Uuenda</button>
+      </div>
+      <div id="analysisOverview"></div>
+      <div class="acard">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div class="acard-title" style="margin:0">Positsioonide soovitused</div>
+          <div class="filter-bar" id="recFilter">
+            <button class="filter-btn active" onclick="filterRecs('all',this)">Kõik</button>
+            <button class="filter-btn" onclick="filterRecs('buy',this)">Osta</button>
+            <button class="filter-btn" onclick="filterRecs('hold',this)">Hoia</button>
+            <button class="filter-btn" onclick="filterRecs('sell',this)">Müü</button>
+          </div>
+        </div>
+        <div id="holdingsList"></div>
+      </div>`;
+
     renderAnalysis(result);
     generateIdeas();
     generateNews();
