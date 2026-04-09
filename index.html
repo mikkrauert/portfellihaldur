@@ -643,10 +643,11 @@ const toEur = (val, cur) => cur === 'USD' ? val / eurUsdRate : val;
 // INIT
 // ═══════════════════════════════════════════
 window.addEventListener('load',()=>{
-  const ck=sessionStorage.getItem('pm_claude');
-  const fk=sessionStorage.getItem('pm_fmp');
-  const ak=sessionStorage.getItem('pm_av');
-  const fhk=sessionStorage.getItem('pm_finnhub');
+  // Proovi localStorage (püsiv) ja sessionStorage (ajutine) järjekorras
+  const ck=localStorage.getItem('pm_claude')||sessionStorage.getItem('pm_claude');
+  const fk=localStorage.getItem('pm_fmp')||sessionStorage.getItem('pm_fmp');
+  const ak=localStorage.getItem('pm_av')||sessionStorage.getItem('pm_av');
+  const fhk=localStorage.getItem('pm_finnhub')||sessionStorage.getItem('pm_finnhub');
   const pf=localStorage.getItem('pm_portfolio');
   if(ck&&pf){
     CLAUDE_KEY=ck; FMP_KEY=fk||''; AV_KEY=ak||''; FINNHUB_KEY=fhk||'';
@@ -663,9 +664,10 @@ function initApp(){
   AV_KEY=document.getElementById('avKeyInput').value.trim();
   FINNHUB_KEY=document.getElementById('finnhubKeyInput').value.trim();
   sessionStorage.setItem('pm_claude',ck);
-  if(FMP_KEY) sessionStorage.setItem('pm_fmp',FMP_KEY);
-  if(AV_KEY) sessionStorage.setItem('pm_av',AV_KEY);
-  if(FINNHUB_KEY) sessionStorage.setItem('pm_finnhub',FINNHUB_KEY);
+  localStorage.setItem('pm_claude',ck);
+  if(FMP_KEY){ sessionStorage.setItem('pm_fmp',FMP_KEY); localStorage.setItem('pm_fmp',FMP_KEY); }
+  if(AV_KEY){ sessionStorage.setItem('pm_av',AV_KEY); localStorage.setItem('pm_av',AV_KEY); }
+  if(FINNHUB_KEY){ sessionStorage.setItem('pm_finnhub',FINNHUB_KEY); localStorage.setItem('pm_finnhub',FINNHUB_KEY); }
   const raw=document.getElementById('portfolioInput').value.trim();
   if(raw){
     portfolio=parsePortfolio(raw);
@@ -1669,10 +1671,10 @@ function saveKeys(){
   const fk=document.getElementById('s-fmp').value.trim();
   const fhk=document.getElementById('s-finnhub').value.trim();
   const ak=document.getElementById('s-av').value.trim();
-  if(ck){CLAUDE_KEY=ck;sessionStorage.setItem('pm_claude',ck);}
-  if(fk){FMP_KEY=fk;sessionStorage.setItem('pm_fmp',fk);}
-  if(fhk){FINNHUB_KEY=fhk;sessionStorage.setItem('pm_finnhub',fhk);}
-  if(ak){AV_KEY=ak;sessionStorage.setItem('pm_av',ak);}
+  if(ck){CLAUDE_KEY=ck;localStorage.setItem('pm_claude',ck);sessionStorage.setItem('pm_claude',ck);}
+  if(fk){FMP_KEY=fk;localStorage.setItem('pm_fmp',fk);sessionStorage.setItem('pm_fmp',fk);}
+  if(fhk){FINNHUB_KEY=fhk;localStorage.setItem('pm_finnhub',fhk);sessionStorage.setItem('pm_finnhub',fhk);}
+  if(ak){AV_KEY=ak;localStorage.setItem('pm_av',ak);sessionStorage.setItem('pm_av',ak);}
   updateApiStatus();
   alert('Võtmed salvestatud!');
 }
