@@ -1141,33 +1141,36 @@ async function fetchFundamentals(){
       const q=await fetch(`https://financialmodelingprep.com/api/v3/quote/${ft}?apikey=${FMP_KEY}`);
       if(q.ok){
         const d=await q.json();
+        console.log(`FMP quote ${ft}:`, JSON.stringify(d).substring(0,200));
         if(d[0]){
           s.pe = d[0].pe != null ? parseFloat(d[0].pe) : null;
           s.eps = d[0].eps != null ? parseFloat(d[0].eps) : null;
           s.yearHigh = d[0].yearHigh || null;
           s.yearLow = d[0].yearLow || null;
+          console.log(`  → pe=${s.pe}, yearHigh=${s.yearHigh}`);
         }
-      }
+      } else { console.warn(`FMP quote ${ft} HTTP ${q.status}`); }
       await new Promise(r=>setTimeout(r,250));
 
-      // 2. RSI — proovi FMP technical indicator (Premium) ja kui ei tule, jäta tühjaks
+      // 2. RSI — FMP technical indicator
       try{
         const ri=await fetch(`https://financialmodelingprep.com/api/v3/technical_indicator/daily/${ft}?period=14&type=rsi&apikey=${FMP_KEY}`);
         if(ri.ok){
           const rd=await ri.json();
-          // FMP võib tagastada error objekti tasuta tieris
+          console.log(`FMP RSI ${ft}:`, JSON.stringify(rd).substring(0,150));
           if(Array.isArray(rd) && rd[0]?.rsi != null){
             s.rsi=parseFloat(rd[0].rsi);
             rsiOk++;
           }
         }
-      }catch(e){}
+      }catch(e){ console.warn(`FMP RSI ${ft} viga:`, e); }
       await new Promise(r=>setTimeout(r,250));
 
-      // 3. Analüütikute soovitused + hinnasiht
+      // 3. Analüütikute soovitused
       const a=await fetch(`https://financialmodelingprep.com/api/v3/analyst-stock-recommendations/${ft}?limit=1&apikey=${FMP_KEY}`);
       if(a.ok){
         const d=await a.json();
+        console.log(`FMP analyst ${ft}:`, JSON.stringify(d).substring(0,200));
         if(d[0]){
           const r=d[0];
           const buys=(r.analystRatingsbuy||0)+(r.analystRatingsStrongBuy||0);
@@ -1184,11 +1187,31 @@ async function fetchFundamentals(){
       }
       await new Promise(r=>setTimeout(r,250));
 
-      const pt=await fetch(`https://financialmodelingprep.com/api/v3/price-target-consensus/${ft}?apikey=${FMP_KEY}`);
-      if(pt.ok){
-        const pd=await pt.json();
-        if(pd[0]?.targetConsensus) s.analystTarget=pd[0].targetConsensus;
+      // 4. Hinnasiht — proovi mõlemat endpointi
+      try{
+        const pt=await fetch(`https://financialmodelingprep.com/api/v3/price-target-consensus/${ft}?apikey=${FMP_KEY}`);
+        if(pt.ok){
+          const pd=await pt.json();
+          console.log(`FMP price-target-consensus ${ft}:`, JSON.stringify(pd).substring(0,200));
+          const consensus = Array.isArray(pd) ? pd[0] : pd;
+          const target = consensus?.targetConsensus || consensus?.priceTargetConsensus || consensus?.targetMean || consensus?.medianPriceTarget;
+          if(target) s.analystTarget = parseFloat(target);
+        }
+      }catch(e){}
+
+      if(!s.analystTarget){
+        try{
+          const pt2=await fetch(`https://financialmodelingprep.com/api/v3/price-target-summary/${ft}?apikey=${FMP_KEY}`);
+          if(pt2.ok){
+            const pd2=await pt2.json();
+            console.log(`FMP price-target-summary ${ft}:`, JSON.stringify(pd2).substring(0,200));
+            const summary = Array.isArray(pd2) ? pd2[0] : pd2;
+            const target2 = summary?.targetConsensus || summary?.lastMonthAvgPriceTarget || summary?.lastQuarterAvgPriceTarget;
+            if(target2) s.analystTarget = parseFloat(target2);
+          }
+        }catch(e){}
       }
+      console.log(`  → analystTarget=${s.analystTarget}, analystRating=${s.analystRating}`);
       await new Promise(r=>setTimeout(r,250));
 
       ok++;
@@ -1485,21 +1508,21 @@ async function generateIdeas(){
   document.getElementById('ideasGrid').innerHTML=`<div class="empty"><span class="loader" style="width:20px;height:20px;border-width:3px"></span></div>`;
   try{
     const raw=await callAI(
-      `Tagasta AINULT JSON:
+      `Tagasta AINULT JSON. Kasuta ainult ASCII jutumärke. ÄRGE kasuta ülakomad ega erimärgid tekstis:
 {"ideas":[{
-  "ticker":"X",
-  "name":"Ettevõtte nimi",
-  "market_cap":"large|mid|small",
-  "reason":"2-3 lauset eesti keeles miks praegu atraktiivne",
-  "risk":"madal|keskmine|kõrge",
-  "sector":"sektor",
-  "upside_pct":35,
-  "analyst_target_usd":150,
-  "thesis":"üks lause investeerimistees",
-  "signals":["RSI < 40","Analüütikud: Strong Buy"],
-  "catalyst":"peamine lühiajaline katalüsaator eesti keeles"
+  "ticker":"AAPL",
+  "name":"Apple Inc",
+  "market_cap":"large",
+  "reason":"1-2 lauset eesti keeles. Eira jutumärke tekstis.",
+  "risk":"madal",
+  "sector":"Tehnoloogia",
+  "upside_pct":30,
+  "analyst_target_usd":220,
+  "thesis":"Uks lause investeerimistees ilma jutumärkideta",
+  "signals":["RSI alla 40","Strong Buy konsensus"],
+  "catalyst":"Peamine katalüsaator"
 }]}
-Genereeri täpselt 12 ostuideed.`,
+Genereeri 12 ostuideed. Tekstis MITTE kasutada jutumärke ega apostrofe.`,
       `Portfell: ${portfolio.map(s=>s.ticker).join(', ')}.
 
 Otsi aktsiaid kus:
@@ -1514,7 +1537,7 @@ Jaga 12 ideed kolme gruppi:
 
 Kaasa vähemalt 2 Euroopa aktsiat. Ära korda olemasolevaid portfelli aktsiaid.
 Ole konkreetne: nimeta tegelikke hinnasihtide numbreid ja sektoreid.`,
-      3000, true
+      4500, true
     );
     
     ideasData = parseJSON(raw).ideas || [];
